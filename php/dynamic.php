@@ -100,7 +100,7 @@ function getAllDynamic($account, $limit)
                 $total = array();
                 $num2 = 0;
                 while ($row2 = mysqli_fetch_assoc($result2)) {
-                    $sql2 =  "SELECT account,userName,headIcon,email,permission,loginTime,gender,`enable` FROM " . DATABASE_NAME . ".`user` WHERE account='" . $row2['account'] . "' AND enable='true'";
+                    $sql2 =  "SELECT account,userName,headIcon,email,permission,loginTime,gender,`enable` FROM " . DATABASE_NAME . ".`user` WHERE account='" . $row2['account'] . "' AND AND visible='true'";
                     $result3 = mysqli_query($con, $sql2);
                     if($result3!=false)
                     {
