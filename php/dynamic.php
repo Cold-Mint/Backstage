@@ -85,9 +85,9 @@ function getAllDynamic($account, $limit)
             $num = 0;
             while ($row = mysqli_fetch_assoc($result)) {
                 if ($num == 0) {
-                    $newSql = $newSql . " WHERE account='" . $row['targetAccount'] . "'";
+                    $newSql = $newSql . " WHERE account='" . $row['targetAccount'] . "' AND visible='true'";
                 } else {
-                    $newSql = $newSql . " OR account='" . $row['targetAccount'] . "'";
+                    $newSql = $newSql . " OR account='" . $row['targetAccount'] . "'  AND visible='true'";
                 }
                 $num++;
             }
@@ -100,7 +100,7 @@ function getAllDynamic($account, $limit)
                 $total = array();
                 $num2 = 0;
                 while ($row2 = mysqli_fetch_assoc($result2)) {
-                    $sql2 =  "SELECT account,userName,headIcon,email,permission,loginTime,gender,`enable` FROM " . DATABASE_NAME . ".`user` WHERE account='" . $row2['account'] . "' AND AND visible='true'";
+                    $sql2 =  "SELECT account,userName,headIcon,email,permission,loginTime,gender,`enable` FROM " . DATABASE_NAME . ".`user` WHERE account='" . $row2['account'] . "' AND  enable='true'";
                     $result3 = mysqli_query($con, $sql2);
                     if($result3!=false)
                     {
