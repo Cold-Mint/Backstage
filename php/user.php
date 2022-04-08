@@ -693,7 +693,7 @@ function login($account, $passWord, $appID, $isEmail)
                     return;
                 } else {
                     $banTimeNum = strtotime($banTime);
-                    if ($nowTime > $banTimeNum) {
+                    if ($nowTime < $banTimeNum) {
                         echo createResponse(ERROR_CODE, "您的账号已被封禁至" . $banTime, null);
                         return;
                     }

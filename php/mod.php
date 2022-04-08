@@ -63,7 +63,7 @@ switch ($_REQUEST['action']) {
             echo createResponse(ERROR_CODE, "模组不能大于50MB。", null);
             return;
         }
-        updateMod($_POST['appID'], $_POST['modId'], $_POST['account'], $_POST['modName'], $_POST['describe'], $_POST['tags'], $_POST['versionName'], $_POST['updateLog'], $icon, $_FILES['file']);
+        updateMod($_POST['appID'], $_POST['modId'], $_POST['account'], $_POST['modName'], $_POST['describe'], $_POST['tags'], $_POST['versionName'], $_POST['unitNumber'], $_POST['updateLog'], $icon, $_FILES['file']);
         break;
     case "release":
         if (empty($_POST['account'])) {
@@ -581,7 +581,7 @@ function getInfo($account, $modId)
 
 
 /**更新模组方法 */
-function updateMod($appID, $modId, $developer, $name, $describe, $tags, $versionName, $updataLog, $iconFile, $file)
+function updateMod($appID, $modId, $developer, $name, $describe, $tags, $versionName, $unitNumber, $updataLog, $iconFile, $file)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
@@ -667,7 +667,7 @@ function updateMod($appID, $modId, $developer, $name, $describe, $tags, $version
                 $createTime = date("Y-m-d H:i:s", $nowTime);
                 $newVersionNumber = $modRow['versionNumber'] + 1;
 
-                $up = "UPDATE " . DATABASE_NAME . ".`mod` SET `name`='" . $name . "',  `icon` = '" . $realIcon . "', `tags`='" . $tags . "',`screenshots` = '" . $screenshotData . "', `versionNumber` = " . $newVersionNumber . ", `versionName`='" . $versionName . "', `describe`='" . $describe . "',  `updateTime` = '" . $createTime . "'  WHERE `id` = '" . $modId . "'";
+                $up = "UPDATE " . DATABASE_NAME . ".`mod` SET `name`='" . $name . "',  `icon` = '" . $realIcon . "',`unitNumber=`'" . $unitNumber . "', `tags`='" . $tags . "',`screenshots` = '" . $screenshotData . "', `versionNumber` = " . $newVersionNumber . ", `versionName`='" . $versionName . "', `describe`='" . $describe . "',  `updateTime` = '" . $createTime . "'  WHERE `id` = '" . $modId . "'";
                 $sqlUpdate = "INSERT INTO " . DATABASE_NAME . ".`mod_versions`(`id`, `versionName`, `versionNumber`, `updateLog`, `time`) VALUES ('" . $modId . "', '" . $versionName . "', " . $newVersionNumber . ", '" . $updataLog . "', '" . $createTime . "')";
                 mysqli_query($con, $sqlUpdate);
                 mysqli_query($con, $up);
