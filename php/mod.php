@@ -667,7 +667,7 @@ function updateMod($appID, $modId, $developer, $name, $describe, $tags, $version
                 $createTime = date("Y-m-d H:i:s", $nowTime);
                 $newVersionNumber = $modRow['versionNumber'] + 1;
 
-                $up = "UPDATE " . DATABASE_NAME . ".`mod` SET `name`='" . $name . "',  `icon` = '" . $realIcon . "',`unitNumber=`'" . $unitNumber . "', `tags`='" . $tags . "',`screenshots` = '" . $screenshotData . "', `versionNumber` = " . $newVersionNumber . ", `versionName`='" . $versionName . "', `describe`='" . $describe . "',  `updateTime` = '" . $createTime . "'  WHERE `id` = '" . $modId . "'";
+                $up = "UPDATE " . DATABASE_NAME . ".`mod` SET `name`='" . $name . "',  `icon` = '" . $realIcon . "',`unitNumber`='" . $unitNumber . "', `tags`='" . $tags . "',`screenshots` = '" . $screenshotData . "', `versionNumber` = " . $newVersionNumber . ", `versionName`='" . $versionName . "', `describe`='" . $describe . "',  `updateTime` = '" . $createTime . "'  WHERE `id` = '" . $modId . "'";
                 $sqlUpdate = "INSERT INTO " . DATABASE_NAME . ".`mod_versions`(`id`, `versionName`, `versionNumber`, `updateLog`, `time`) VALUES ('" . $modId . "', '" . $versionName . "', " . $newVersionNumber . ", '" . $updataLog . "', '" . $createTime . "')";
                 mysqli_query($con, $sqlUpdate);
                 mysqli_query($con, $up);

@@ -114,10 +114,11 @@ function confirmOrder($account, $appId, $flag, $payState)
                     if (mysqli_num_rows($targetUserResult) > 0) {
                         $targetUserRow = mysqli_fetch_assoc($targetUserResult);
                         $addTime = $row['addTime'];
+                        $head = "random(";
                         if ($addTime == "forever") {
                             $updataSql = "UPDATE " . DATABASE_NAME . ".`user` SET `expirationTime` = 'forever' WHERE `account` = '" . $targetAccount . "'";
                             mysqli_query($con, $updataSql);
-                            send($targetUserRow['email'], "订单完成通知", "<p>亲爱的" . $targetUserRow['userName'] . "，您好！</p>
+                            $sendOk = send($targetUserRow['email'], "订单完成通知", "<p>亲爱的" . $targetUserRow['userName'] . "，您好！</p>
                             <p>您的订单(" . $row['name'] . ")已完成,感谢您的支持。</p>
                             <p>助手账号(" . $targetAccount . ")已<font color=\"#FF0000\">永久激活</font>，可无限期使用。</p>
                             <hr>
@@ -125,12 +126,54 @@ function confirmOrder($account, $appId, $flag, $payState)
                             <p>这封电子邮件由系统自动生成，请勿回复。如果您需要额外帮助，请加入 <a href=\"https://jq.qq.com/?_wv=1027&k=fg3CUxiI\">铁锈助手官方群</a>。</p>
                             <p>祝您生活愉快！</p>
                             <p>-ColdMint</p>", false);
+                            $updataSql2 = "UPDATE " . DATABASE_NAME . ".`order` SET `state` = 'true' WHERE `flag` = '" . $flag . "'";
+                            mysqli_query($con, $updataSql2);
+                            if ($sendOk) {
+                                echo createResponse(SUCCESS_CODE, "订单更新成功", null);
+                            } else {
+                                echo createResponse(SUCCESS_CODE, "订单更新成功，但邮件发送失败。", null);
+                            }
+                        } else if (strpos($addTime, $head) === 0) {
+                            //如果开头是random
+                            $len = strlen($head);
+                            $end = ",";
+                            $endIndex = strpos($addTime, $end);
+                            if ($endIndex == false) {
+                                echo createResponse(ERROR_CODE, "订单处理失败，随机函数错误", null);
+                                return;
+                            } else {
+
+                                $min = (int)substr($addTime, $len, $endIndex - $len);
+                                $max = (int)substr($addTime, $endIndex + 1, strlen($addTime) - 1);
+                                $randNumber =  rand($min, $max);
+                                $expirationTime = strtotime($targetUserRow['expirationTime']);
+                                $newAddTime = "+ " . $randNumber . "day";
+                                $newExpirationTime = date("Y-m-d H:i:s", strtotime($newAddTime, $expirationTime));
+                                $updataSql = "UPDATE " . DATABASE_NAME . ".`user` SET `expirationTime` = '" . $newExpirationTime . "' WHERE `account` = '" . $targetAccount . "'";
+                                mysqli_query($con, $updataSql);
+                                $sendOk = send($targetUserRow['email'], "订单完成通知", "<p>亲爱的" . $targetUserRow['userName'] . "，您好！</p>
+                                <p>您的订单(" . $row['name'] . ")已完成,感谢您的支持。</p>
+                                <p>您获得了" . $randNumber . "天的时长</p>
+                                <p>助手账号(" . $targetAccount . ")已激活至" . $newExpirationTime . "。</p>
+                                <hr>
+                                <p>此通知已发送至与您的 铁锈助手 帐户关联的电子邮件地址。</p>
+                                <p>这封电子邮件由系统自动生成，请勿回复。如果您需要额外帮助，请加入 <a href=\"https://jq.qq.com/?_wv=1027&k=fg3CUxiI\">铁锈助手官方群</a>。</p>
+                                <p>祝您生活愉快！</p>
+                                <p>-ColdMint</p>", false);
+                                $updataSql2 = "UPDATE " . DATABASE_NAME . ".`order` SET `state` = 'true' WHERE `flag` = '" . $flag . "'";
+                                mysqli_query($con, $updataSql2);
+                                if ($sendOk) {
+                                    echo createResponse(SUCCESS_CODE, "订单更新成功，获得" . $randNumber . "天", null);
+                                } else {
+                                    echo createResponse(SUCCESS_CODE, "订单更新成功，获得" . $randNumber . "天。但邮件发送失败。", null);
+                                }
+                            }
                         } else {
                             $expirationTime = strtotime($targetUserRow['expirationTime']);
                             $newExpirationTime = date("Y-m-d H:i:s", strtotime($addTime, $expirationTime));
                             $updataSql = "UPDATE " . DATABASE_NAME . ".`user` SET `expirationTime` = '" . $newExpirationTime . "' WHERE `account` = '" . $targetAccount . "'";
                             mysqli_query($con, $updataSql);
-                            send($targetUserRow['email'], "订单完成通知", "<p>" . $targetUserRow['userName'] . "，您好！</p>
+                            $sendOk = send($targetUserRow['email'], "订单完成通知", "<p>" . $targetUserRow['userName'] . "，您好！</p>
                             <p>您的订单(" . $row['name'] . ")已完成,感谢您的支持。</p>
                             <p>助手账号(" . $targetAccount . ")已激活至" . $newExpirationTime . "。</p>
                             <hr>
@@ -138,10 +181,14 @@ function confirmOrder($account, $appId, $flag, $payState)
                             <p>这封电子邮件由系统自动生成，请勿回复。如果您需要额外帮助，请加入 <a href=\"https://jq.qq.com/?_wv=1027&k=fg3CUxiI\">铁锈助手官方群</a>。</p>
                             <p>祝您生活愉快！</p>
                             <p>-ColdMint</p>", false);
+                            $updataSql2 = "UPDATE " . DATABASE_NAME . ".`order` SET `state` = 'true' WHERE `flag` = '" . $flag . "'";
+                            mysqli_query($con, $updataSql2);
+                            if ($sendOk) {
+                                echo createResponse(SUCCESS_CODE, "订单更新成功", null);
+                            } else {
+                                echo createResponse(SUCCESS_CODE, "订单更新成功，但邮件发送失败。", null);
+                            }
                         }
-                        $updataSql2 = "UPDATE " . DATABASE_NAME . ".`order` SET `state` = 'true' WHERE `flag` = '" . $flag . "'";
-                        mysqli_query($con, $updataSql2);
-                        echo createResponse(SUCCESS_CODE, "订单更新成功", null);
                     } else {
                         echo createResponse(ERROR_CODE, "订单指向的用户不存在。", null);
                     }
