@@ -566,7 +566,20 @@ function getInfo($account, $modId)
                             echo createResponse(ERROR_CODE, "此模组未经审核无法查看。", null);
                         }
                     }
-                } else {
+                } else if($hidden == -2){
+                	//被下架
+                	 if ($developer === $account) {
+                        echo createResponse(ERROR_CODE, "此模组已被下架，请联系管理员查看原因。", null);
+                    } else {
+                        if ($permission < 3) {
+                            //是管理员
+                            echo createResponse(SUCCESS_CODE, "获取成功。", $modRow);
+                        } else {
+                            echo createResponse(ERROR_CODE, "此模组已被下架。", null);
+                        }
+                    }
+                }
+                else {
                     echo createResponse(SUCCESS_CODE, "获取成功。", $modRow);
                 }
             } else {
