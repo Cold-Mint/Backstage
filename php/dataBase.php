@@ -201,6 +201,10 @@ function createIpTable()
         $sql = "CREATE TABLE `ip_record` (
             `ip` varchar(30) NOT NULL,
             `time` varchar(30) DEFAULT NULL,
+            `country` varchar(50) DEFAULT 'unknown',
+            `province` varchar(255) DEFAULT 'unknown',
+            `city` varchar(255) DEFAULT 'unknown',
+            `area` varchar(255) DEFAULT 'unknown',
             `available` varchar(30) DEFAULT NULL,
             `count` varchar(30) DEFAULT NULL,
             PRIMARY KEY (`ip`)
@@ -259,6 +263,7 @@ function createUserTable()
         $sql = "CREATE TABLE `user` (
             `account` varchar(20) NOT NULL,
             `password` varchar(20) NOT NULL,
+            `token` varchar(255) NOT NULL,
             `userName` varchar(20) DEFAULT NULL,
             `email` varchar(30) DEFAULT NULL,
             `headIcon` varchar(255) DEFAULT NULL,

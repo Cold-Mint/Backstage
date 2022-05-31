@@ -79,7 +79,7 @@ switch ($_REQUEST['action']) {
         enableAccount($_POST['account'], $_POST['key'], $isEmail);
         break;
     case "changePassword":
-        if (empty($_POST['account'])) {
+        if (empty($_POST['token'])) {
             echo nullValuePrompt("account");
             return;
         }
@@ -87,7 +87,7 @@ switch ($_REQUEST['action']) {
             echo nullValuePrompt("passWord");
             return;
         }
-        modifyTheRecord($_POST['account'], "passWord", $_POST['passWord']);
+        modifyTheRecord($_POST['token'], "passWord", $_POST['passWord']);
         break;
     case "changeAppId":
         if (empty($_POST['account'])) {
@@ -109,15 +109,15 @@ switch ($_REQUEST['action']) {
         changeAppID($_POST['account'], $_POST['key'], $_POST['appID'], $isEmail);
         break;
     case "changeUserName":
-        if (empty($_POST['account'])) {
-            echo nullValuePrompt("account");
+        if (empty($_POST['token'])) {
+            echo nullValuePrompt("token");
             return;
         }
         if (empty($_POST['userName'])) {
             echo nullValuePrompt("userName");
             return;
         }
-        modifyTheRecord($_POST['account'], "userName", $_POST['userName']);
+        modifyTheRecord($_POST['token'], "userName", $_POST['userName']);
         break;
     case "getSocialInfo":
         //获取社交信息
@@ -125,14 +125,19 @@ switch ($_REQUEST['action']) {
             echo nullValuePrompt("account");
             return;
         }
-        getInfo($_POST['account'], true);
+        getSocialInfo($_POST['account'], true);
         break;
     case "getInfo":
+        //获取用户信息
+        if (empty($_POST['adminToken'])) {
+            echo nullValuePrompt("adminToken");
+            return;
+        }
         if (empty($_POST['account'])) {
             echo nullValuePrompt("account");
             return;
         }
-        getInfo($_POST['account'], false);
+        getInfo($_POST['adminToken'],$_POST['account']);
         break;
     case "getSpaceInfo":
         if (empty($_POST['account'])) {
@@ -162,8 +167,8 @@ switch ($_REQUEST['action']) {
         verification($_POST['account'], $_POST['passWord'], $_POST['appID'], $isEmail);
         break;
     case "updateSpaceInfo":
-        if (empty($_POST['account'])) {
-            echo nullValuePrompt("account");
+        if (empty($_POST['token'])) {
+            echo nullValuePrompt("token");
             return;
         }
         if (empty($_POST['userName'])) {
@@ -192,7 +197,7 @@ switch ($_REQUEST['action']) {
         } else if (!empty($_POST['cover'])) {
             $cover = $_POST['cover'];
         }
-        updateSpaceInfo($_POST['account'], $_POST['userName'], $_POST['introduce'], $_POST['gender'], $icon, $cover);
+        updateSpaceInfo($_POST['token'], $_POST['userName'], $_POST['introduce'], $_POST['gender'], $icon, $cover);
         break;
     case "getSocialList":
         /*
@@ -287,7 +292,7 @@ function getList($social, $enable, $sortMode, $limit)
 
 
 /*更新社交信息 */
-function updateSpaceInfo($account, $userName, $introduce, $gender, $icon, $cover)
+function updateSpaceInfo($token, $userName, $introduce, $gender, $icon, $cover)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
@@ -295,25 +300,28 @@ function updateSpaceInfo($account, $userName, $introduce, $gender, $icon, $cover
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
-        $sql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
+        $sql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE token='" . $token . "'";
         $result = mysqli_query($con, $sql);
         if (mysqli_num_rows($result) > 0) {
             $sqlUserName = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE userName='" . $userName . "'";
             $resultUserName = mysqli_query($con, $sqlUserName);
+            $thisRow = mysqli_fetch_assoc($result);
+            $account = $thisRow['account'];
             if (mysqli_num_rows($resultUserName) > 0) {
                 $row = mysqli_fetch_assoc($resultUserName);
-                $useAccount = $row['account'];
-                if ($useAccount != $account) {
+
+                $useToken = $row['token'];
+                if ($useToken != $token) {
                     echo createResponse(ERROR_CODE, "用户名已被占用。", "@event:用户名占用");
                     return;
                 }
             }
 
-            $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `userName` = '" . $userName . "' WHERE `account` = '" . $account . "'";
+            $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `userName` = '" . $userName . "' WHERE `token` = '" . $token . "'";
             mysqli_query($con, $updata);
-            $updata = "UPDATE " . DATABASE_NAME . ".`community` SET `introduce` = '" . $introduce . "' WHERE `account` = '" . $account . "'";
+            $updata = "UPDATE " . DATABASE_NAME . ".`community` SET `introduce` = '" . $introduce . "' WHERE `token` = '" . $token . "'";
             mysqli_query($con, $updata);
-            $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `gender` = '" . $gender . "' WHERE `account` = '" . $account . "'";
+            $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `gender` = '" . $gender . "' WHERE `token` = '" . $token . "'";
             mysqli_query($con, $updata);
             $folder = "../user/" . iconv("UTF-8", "GBK", $account);
             if (!file_exists($folder)) {
@@ -321,14 +329,14 @@ function updateSpaceInfo($account, $userName, $introduce, $gender, $icon, $cover
             }
             if ($icon != null) {
                 if (is_string($icon)) {
-                    $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `headIcon` = '" . $icon . "' WHERE `account` = '" . $account . "'";
+                    $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `headIcon` = '" . $icon . "' WHERE `token` = '" . $token . "'";
                     mysqli_query($con, $updata);
                 } else {
                     if (!empty($icon)) {
                         $newIcon = $folder . "/icon.png";
                         $move =  move_uploaded_file($icon["tmp_name"], $newIcon);
                         if ($move) {
-                            $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `headIcon` = '" . $newIcon . "' WHERE `account` = '" . $account . "'";
+                            $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `headIcon` = '" . $newIcon . "' WHERE `token` = '" . $token . "'";
                             mysqli_query($con, $updata);
                         }
                     }
@@ -337,14 +345,14 @@ function updateSpaceInfo($account, $userName, $introduce, $gender, $icon, $cover
 
             if ($cover != null) {
                 if (is_string($cover)) {
-                    $updata = "UPDATE " . DATABASE_NAME . ".`community` SET `cover` = '" . $cover . "' WHERE `account` = '" . $account . "'";
+                    $updata = "UPDATE " . DATABASE_NAME . ".`community` SET `cover` = '" . $cover . "' WHERE `token` = '" . $token . "'";
                     mysqli_query($con, $updata);
                 } else {
                     if (!empty($icon)) {
                         $newIcon = $folder . "/cover.png";
                         $move =  move_uploaded_file($cover["tmp_name"], $newIcon);
                         if ($move) {
-                            $updata = "UPDATE " . DATABASE_NAME . ".`community` SET `cover` = '" . $newIcon . "' WHERE `account` = '" . $account . "'";
+                            $updata = "UPDATE " . DATABASE_NAME . ".`community` SET `cover` = '" . $newIcon . "' WHERE `token` = '" . $token . "'";
                             mysqli_query($con, $updata);
                         }
                     }
@@ -352,14 +360,14 @@ function updateSpaceInfo($account, $userName, $introduce, $gender, $icon, $cover
             }
             echo createResponse(SUCCESS_CODE, "已更新", null);
         } else {
-            echo createResponse(ERROR_CODE, "找不到用户" . $account, null);
+            echo createResponse(ERROR_CODE, "令牌验证错误" . $token, null);
         }
     }
     mysqli_close($con);
 }
 
 /*加载信息(是否为社交模式？忽略隐私信息) */
-function getInfo($account, $social)
+function getInfo($adminToken,$account)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
@@ -367,16 +375,46 @@ function getInfo($account, $social)
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
-        $sql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
-        if ($social) {
-            $sql =  "SELECT account,userName,email,permission,loginTime,gender,enable,expirationTime FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
+        $adminSql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE token='" . $adminToken . "'";
+        $adminResult = mysqli_query($con, $adminSql);
+        if (mysqli_num_rows($adminResult) > 0) {
+            $adminRow = mysqli_fetch_assoc($adminResult);
+            $permission = $adminRow['permission'];
+            if($permission == 1){
+                $sql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
+                $result = mysqli_query($con, $sql);
+                if (mysqli_num_rows($result) > 0) {
+                    $row = mysqli_fetch_assoc($result);
+                    echo createResponse(SUCCESS_CODE, "获取成功。", $row);
+                }else{
+                    echo createResponse(SUCCESS_CODE, "用户不存在。", null);
+                }
+            }else{
+                echo createResponse(ERROR_CODE, "您不是管理员。", null);
+            }
+        } else {
+            echo createResponse(ERROR_CODE, "管理员令牌验证失败。", null);
         }
+    }
+    mysqli_close($con);
+}
+
+/*加载社交信息 */
+function getSocialInfo($account)
+{
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return;
+    } else {
+        $sql =  "SELECT account,userName,email,permission,loginTime,gender,enable,expirationTime FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
         $result = mysqli_query($con, $sql);
         if (mysqli_num_rows($result) > 0) {
             $row = mysqli_fetch_assoc($result);
             echo createResponse(SUCCESS_CODE, "获取成功", $row);
         } else {
-            echo createResponse(ERROR_CODE, "找不到用户" . $account, null);
+            echo createResponse(ERROR_CODE, "用户不存在" . $account, null);
         }
     }
     mysqli_close($con);
@@ -412,11 +450,11 @@ function getSpaceInfo($account)
 
 /**
  * 修改记录
- * @param $account 账号
+ * @param $token 账号
  * @param $key 键
  * @param $value 值
  */
-function modifyTheRecord($account, $key, $value)
+function modifyTheRecord($token, $key, $value)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
@@ -424,19 +462,18 @@ function modifyTheRecord($account, $key, $value)
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
-        $sql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
+        $sql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE token='" . $token . "'";
         $result = mysqli_query($con, $sql);
         if (mysqli_num_rows($result) > 0) {
             $row = mysqli_fetch_assoc($result);
-            $expirationTime = strtotime($row['expirationTime']);
-            $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `" . $key . "` = '" . $value . "' WHERE `account` = '" . $account . "'";
+            $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `" . $key . "` = '" . $value . "' WHERE `token` = '" . $token . "'";
             if (mysqli_query($con, $updata)) {
                 echo createResponse(SUCCESS_CODE, "修改成功", null);
             } else {
                 echo createResponse(ERROR_CODE, "修改失败", null);
             }
         } else {
-            echo createResponse(ERROR_CODE, "找不到用户" . $account, null);
+            echo createResponse(ERROR_CODE, "令牌验证失败。" , null);
         }
     }
     mysqli_close($con);
@@ -521,14 +558,14 @@ function register($account, $userName, $passWord, $email, $appID)
             return false;
         }
 
-        $sql = "INSERT INTO " . DATABASE_NAME . ".`user`(`account`, `password`, `userName`, `email`,`appID`, `enable`, `creationTime`, `loginTime`, `expirationTime`,`ip`) VALUES ('" . $account . "', '" . $passWord . "', '" . $userName . "', '" . $email . "', '" . $appID . "', '" . $key . "', '" . $createTime . "', '" . $createTime . "', '" . $expirationTime . "','" . getIp() . "')";
+        $sql = "INSERT INTO " . DATABASE_NAME . ".`user`(`account`, `password`, `token`, `userName`, `email`,`appID`, `enable`, `creationTime`, `loginTime`, `expirationTime`,`ip`) VALUES ('" . $account . "', '" . $passWord . "', '" . uuid() . "','" . $userName . "', '" . $email . "', '" . $appID . "', '" . $key . "', '" . $createTime . "', '" . $createTime . "', '" . $expirationTime . "','" . getIp() . "')";
         $sqlcommunity = "INSERT INTO " . DATABASE_NAME . ".`community`(`account`) VALUES ('" . $account . "')";
         $sqlLock2 = "INSERT INTO  " . DATABASE_NAME . ".`coupons`(`name`, `describe` , `type`, `value`, `target`, `num`, `createTime`,`expirationTime`) VALUES ('萌新折扣券', '萌新购买铁锈助手减免" . ((1 - DISCOUNT_VALUE) * 100) . "%', 'personal', '" . DISCOUNT_VALUE . "', '" . $account . "', 1, '" . $createTime . "','" . $expirationTime . "')";
         mysqli_query($con, $sqlLock2);
         mysqli_query($con, $sqlcommunity);
         if (mysqli_query($con, $sql)) {
             echo createResponse(SUCCESS_CODE, "注册成功。", null);
-            send($email, "请激活您的铁锈助手账号", "<p>" . $userName . "，您好！</p>
+            /*send($email, "请激活您的铁锈助手账号", "<p>" . $userName . "，您好！</p>
             <p>您登录帐户" . $account . "所需的令牌验证码为：</p>
             <h1><font color=\"#FF0000\">" . $key . "</font></h1>
             <p>令牌验证码是完成登录所必需的。没有人能够不访问这封电子邮件就访问您的帐户。</p>
@@ -536,7 +573,7 @@ function register($account, $userName, $passWord, $email, $appID)
             <p>此通知已发送至与您的 铁锈助手 帐户关联的电子邮件地址。</p>
             <p>这封电子邮件由系统自动生成，请勿回复。如果您需要额外帮助，请加入 <a href=\"https://jq.qq.com/?_wv=1027&k=fg3CUxiI\">铁锈助手官方群</a>。</p>
             <p>祝您生活愉快！</p>
-            <p>-ColdMint</p>", false);
+            <p>-ColdMint</p>", false);*/
         } else {
             echo createResponse(ERROR_CODE, "注册失败。", mysqli_error($con));
             return false;
@@ -705,10 +742,12 @@ function login($account, $passWord, $appID, $isEmail)
                 echo createResponse(ERROR_CODE, "请更改登录设备", null);
                 return;
             } else {
-                echo createResponse(SUCCESS_CODE, "登录成功", $row);
+                $token = uuid();
+                echo createResponse(SUCCESS_CODE, "登录成功", $token);
                 $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `loginTime` = '" . date("Y-m-d H:i:s", $nowTime) . "' WHERE " . $key . " = '" . $account . "'";
                 mysqli_query($con, $updata);
-                //getIp()
+                $updataToken = "UPDATE " . DATABASE_NAME . ".`user` SET `token` = '" . $token . "' WHERE " . $key . " = '" . $account . "'";
+                mysqli_query($con, $updataToken);
                 $updataIp = "UPDATE " . DATABASE_NAME . ".`user` SET `ip` = '" . getIp() . "' WHERE " . $key . " = '" . $account . "'";
                 mysqli_query($con, $updataIp);
             }

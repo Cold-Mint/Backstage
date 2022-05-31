@@ -1,6 +1,8 @@
 <?php
 /*模组系统 （上传，下载，模组信息管理） */
 require_once "conf.php";
+require_once "email.php";
+
 
 if (!canUseIp()) {
     return;
@@ -489,15 +491,37 @@ function sendComments($account, $appID, $modId, $content)
         $sqlUser = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "' AND appID='" . $appID . "'";
         $userResult = mysqli_query($con, $sqlUser);
         if (mysqli_num_rows($userResult) > 0) {
+            $userRow = mysqli_fetch_assoc($userResult);
             $sqlMod = "SELECT * FROM " . DATABASE_NAME . ".`mod` WHERE id='" . $modId . "'";
             $modResult = mysqli_query($con, $sqlMod);
             if (mysqli_num_rows($modResult) > 0) {
-                $createTime = date("Y-m-d H:i:s", time());
-                $addSql = "INSERT INTO " . DATABASE_NAME . ".`mod_comments`(`modId`, `account`, `content`, `time`) VALUES ('" . $modId . "', '" . $account . "', '" . $content . "', '" . $createTime . "')";
-                if (mysqli_query($con, $addSql)) {
-                    echo createResponse(SUCCESS_CODE, "发布成功。", null);
+                $modRow = mysqli_fetch_assoc($modResult);
+                $developer = $modRow['developer'];
+                $developerUser = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE account='" . $developer . "'";
+                $developerResult = mysqli_query($con, $developerUser);
+                if (mysqli_num_rows($developerResult) > 0) {
+                    $developerRow = mysqli_fetch_assoc($developerResult);
+                    $createTime = date("Y-m-d H:i:s", time());
+                    send($developerRow['email'], $userRow['userName'] . "评论了您的模组", "<p>" . $developerRow['userName'] . "，您好！</p>
+            <p>" . $userRow['userName'] . "(" . $userRow['account'] . ") 评论了您的模组 " . $modRow['name'] . "(" . $modId . ")</p>
+            <p>评论内容:</p>
+            <P>" . $content . "</p>
+            <P>评论时间:</p>
+            <p>" . $createTime . "</p>
+            <hr>
+            <p>此通知已发送至与您的 铁锈助手 帐户关联的电子邮件地址。</p>
+            <p>这封电子邮件由系统自动生成，请勿回复。如果您需要额外帮助，请加入 <a href=\"https://jq.qq.com/?_wv=1027&k=fg3CUxiI\">铁锈助手官方群</a>。</p>
+            <p>祝您生活愉快！</p>
+            <p>-ColdMint</p>", false);
+                    $addSql = "INSERT INTO " . DATABASE_NAME . ".`mod_comments`(`modId`, `account`, `content`, `time`) VALUES ('" . $modId . "', '" . $account . "', '" . $content . "', '" . $createTime . "')";
+                    if (mysqli_query($con, $addSql)) {
+
+                        echo createResponse(SUCCESS_CODE, "发布成功。", null);
+                    } else {
+                        echo createResponse(ERROR_CODE, "发布失败。", null);
+                    }
                 } else {
-                    echo createResponse(ERROR_CODE, "发布失败。", null);
+                    echo createResponse(ERROR_CODE, "模组作者" . $developer . "不存在。", null);
                 }
             } else {
                 echo createResponse(ERROR_CODE, "找不到id为" . $modId . "的模组。", null);
@@ -566,9 +590,9 @@ function getInfo($account, $modId)
                             echo createResponse(ERROR_CODE, "此模组未经审核无法查看。", null);
                         }
                     }
-                } else if($hidden == -2){
-                	//被下架
-                	 if ($developer === $account) {
+                } else if ($hidden == -2) {
+                    //被下架
+                    if ($developer === $account) {
                         echo createResponse(ERROR_CODE, "此模组已被下架，请联系管理员查看原因。", null);
                     } else {
                         if ($permission < 3) {
@@ -578,8 +602,7 @@ function getInfo($account, $modId)
                             echo createResponse(ERROR_CODE, "此模组已被下架。", null);
                         }
                     }
-                }
-                else {
+                } else {
                     echo createResponse(SUCCESS_CODE, "获取成功。", $modRow);
                 }
             } else {

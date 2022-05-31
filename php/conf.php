@@ -61,8 +61,23 @@ function canUseIp()
                 }
             }
         } else {
-            //没有数据，添加记录
-            $insetSql = "INSERT INTO " . DATABASE_NAME . ".`ip_record`(`ip`, `time`, `available`, `count`) VALUES ('" . $ip . "', '" . $nowTimeRow . "', 'true', '1')";
+            //没有数据，添加记录(解析目标ip)
+            $ch = curl_init();
+            // 设置URL和相应的选项
+            curl_setopt($ch, CURLOPT_URL, "http://ip.useragentinfo.com/json?ip=" . $ip);
+            curl_setopt($ch, CURLOPT_HEADER, 0);
+            //设置不直接输出
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            //获取返回值
+            $output = curl_exec($ch);
+            // 关闭cURL资源，并且释放系统资源
+            curl_close($ch);
+            $arr = json_decode($output, true);
+            $country = $arr['country'];
+            $province = $arr['province'];
+            $city = $arr['city'];
+            $area = $arr['area'];
+            $insetSql = "INSERT INTO " . DATABASE_NAME . ".`ip_record`(`ip`, `time`,`country`,`province`,`city`,`area`, `available`, `count`) VALUES ('" . $ip . "', '" . $nowTimeRow . "','" . $country . "','" . $province . "', '" . $city . "','" . $area . "','true', '1')";
             mysqli_query($con, $insetSql);
             $resultBool = true;
         }
@@ -134,8 +149,9 @@ function uuid()
 /** 
  * 创建唯一验证码
  */
-function createUniqueCode(){
-    $d = substr(base_convert(md5(uniqid(md5(microtime(true)),true)), 16, 10), 0, 6);
+function createUniqueCode()
+{
+    $d = substr(base_convert(md5(uniqid(md5(microtime(true)), true)), 16, 10), 0, 6);
     return $d;
 }
 

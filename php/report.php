@@ -13,8 +13,8 @@ if (empty($_REQUEST['action'])) {
 
 switch ($_REQUEST['action']) {
     case "send":
-        if (empty($_POST['account'])) {
-            echo nullValuePrompt("account");
+        if (empty($_POST['token'])) {
+            echo nullValuePrompt("token");
             return;
         }
         if (empty($_POST['type'])) {
@@ -37,14 +37,14 @@ switch ($_REQUEST['action']) {
             echo nullValuePrompt("describe");
             return;
         }
-        send($_POST['account'], $_POST['type'], $_POST['target'], $_POST['why'], $_POST['describe']);
+        send($_POST['token'], $_POST['type'], $_POST['target'], $_POST['why'], $_POST['describe']);
         break;
     case "list":
         loadList();
         break;
     case "dispose":
-        if (empty($_POST['account'])) {
-            echo nullValuePrompt("account");
+        if (empty($_POST['token'])) {
+            echo nullValuePrompt("token");
             return;
         }
         if (empty($_POST['id'])) {
@@ -55,12 +55,12 @@ switch ($_REQUEST['action']) {
             echo nullValuePrompt("state");
             return;
         }
-        disposeReport($_POST['account'], $_POST['id'], $_POST['state']);
+        disposeReport($_POST['token'], $_POST['id'], $_POST['state']);
         break;
 }
 
 /*处理举报 */
-function disposeReport($account, $id, $state)
+function disposeReport($token, $id, $state)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
@@ -68,10 +68,11 @@ function disposeReport($account, $id, $state)
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
-        $sqlUser = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE `account`='" . $account . "'";
+        $sqlUser = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE `token`='" . $token . "'";
         $userResult = mysqli_query($con, $sqlUser);
         if (mysqli_num_rows($userResult) > 0) {
             $row = mysqli_fetch_assoc($userResult);
+            $account = $row['account'];
             $permission = $row['permission'];
             if ($permission < 3) {
                 $sqlReport = "SELECT * FROM " . DATABASE_NAME . ".`report_record` WHERE `id`='" . $id . "' AND `state`='1' ORDER BY id DESC";
@@ -115,7 +116,7 @@ function disposeReport($account, $id, $state)
                 echo createResponse(ERROR_CODE, "您无权处理举报。", null);
             }
         } else {
-            echo createResponse(ERROR_CODE, "找不到名为" . $account . "的用户。", null);
+            echo createResponse(ERROR_CODE, "令牌验证失败。", null);
         }
     }
     mysqli_close($con);
@@ -158,7 +159,7 @@ function loadList()
 }
 
 /*发送举报请求 */
-function send($account, $type, $target, $why, $describe)
+function send($token, $type, $target, $why, $describe)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
@@ -166,8 +167,10 @@ function send($account, $type, $target, $why, $describe)
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
-        $sql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
+        $sql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE token='" . $token . "'";
         $result = mysqli_query($con, $sql);
+        $row = mysqli_fetch_assoc($result);
+        $account = $row['account'];
         if (mysqli_num_rows($result) > 0) {
             # $row = mysqli_fetch_assoc($result);
             $now = time();
@@ -187,7 +190,7 @@ function send($account, $type, $target, $why, $describe)
             }
             $result2 = mysqli_query($con, $selectSql);
             if (mysqli_num_rows($result2) > 0) {
-                $oldSql =  "SELECT * FROM " . DATABASE_NAME . ".`report_record` WHERE `account`='" . $account . "' AND `type`='" . $type . "' AND `target`='" . $target . "' AND `state`='1'";
+                $oldSql =  "SELECT * FROM " . DATABASE_NAME . ".`report_record` WHERE `token`='" . $token . "' AND `type`='" . $type . "' AND `target`='" . $target . "' AND `state`='1'";
                 $oldResult = mysqli_query($con, $oldSql);
                 if (mysqli_num_rows($oldResult) > 0) {
                     echo createResponse(ERROR_CODE, "您已经举报过" . $target . "了，请等待处理结果。", null);
