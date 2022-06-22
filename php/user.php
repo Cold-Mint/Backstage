@@ -137,7 +137,7 @@ switch ($_REQUEST['action']) {
             echo nullValuePrompt("account");
             return;
         }
-        getInfo($_POST['adminToken'],$_POST['account']);
+        getInfo($_POST['adminToken'], $_POST['account']);
         break;
     case "getSpaceInfo":
         if (empty($_POST['account'])) {
@@ -367,7 +367,7 @@ function updateSpaceInfo($token, $userName, $introduce, $gender, $icon, $cover)
 }
 
 /*加载信息(是否为社交模式？忽略隐私信息) */
-function getInfo($adminToken,$account)
+function getInfo($adminToken, $account)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
@@ -380,16 +380,16 @@ function getInfo($adminToken,$account)
         if (mysqli_num_rows($adminResult) > 0) {
             $adminRow = mysqli_fetch_assoc($adminResult);
             $permission = $adminRow['permission'];
-            if($permission == 1){
+            if ($permission == 1) {
                 $sql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
                 $result = mysqli_query($con, $sql);
                 if (mysqli_num_rows($result) > 0) {
                     $row = mysqli_fetch_assoc($result);
                     echo createResponse(SUCCESS_CODE, "获取成功。", $row);
-                }else{
+                } else {
                     echo createResponse(SUCCESS_CODE, "用户不存在。", null);
                 }
-            }else{
+            } else {
                 echo createResponse(ERROR_CODE, "您不是管理员。", null);
             }
         } else {
@@ -473,7 +473,7 @@ function modifyTheRecord($token, $key, $value)
                 echo createResponse(ERROR_CODE, "修改失败", null);
             }
         } else {
-            echo createResponse(ERROR_CODE, "令牌验证失败。" , null);
+            echo createResponse(ERROR_CODE, "令牌验证失败。", null);
         }
     }
     mysqli_close($con);
@@ -743,13 +743,18 @@ function login($account, $passWord, $appID, $isEmail)
                 return;
             } else {
                 $token = uuid();
-                echo createResponse(SUCCESS_CODE, "登录成功", $token);
                 $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `loginTime` = '" . date("Y-m-d H:i:s", $nowTime) . "' WHERE " . $key . " = '" . $account . "'";
                 mysqli_query($con, $updata);
                 $updataToken = "UPDATE " . DATABASE_NAME . ".`user` SET `token` = '" . $token . "' WHERE " . $key . " = '" . $account . "'";
                 mysqli_query($con, $updataToken);
                 $updataIp = "UPDATE " . DATABASE_NAME . ".`user` SET `ip` = '" . getIp() . "' WHERE " . $key . " = '" . $account . "'";
                 mysqli_query($con, $updataIp);
+                $arr = array(
+                    "token" => $token,
+                    "expirationTime" => $row['expirationTime'],
+                    "activation" => $activation
+                );
+                echo createResponse(SUCCESS_CODE, "登录成功", $arr);
             }
         } else {
             //不能修改
