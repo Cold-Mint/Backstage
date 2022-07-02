@@ -139,6 +139,13 @@ switch ($_REQUEST['action']) {
         }
         getInfo($_POST['adminToken'], $_POST['account']);
         break;
+    case "getUserActivationInfo":
+        if (empty($_POST['token'])) {
+            echo nullValuePrompt("token");
+            return;
+        }
+        getUserActivationInfo($_POST['token']);
+        break;
     case "getSpaceInfo":
         if (empty($_POST['account'])) {
             echo nullValuePrompt("account");
@@ -366,7 +373,52 @@ function updateSpaceInfo($token, $userName, $introduce, $gender, $icon, $cover)
     mysqli_close($con);
 }
 
-/*加载信息(是否为社交模式？忽略隐私信息) */
+/*获取当前用户的激活信息 */
+function getUserActivationInfo($token)
+{
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return;
+    } else {
+        $sql = "SELECT account,userName,headIcon,permission,email,enable,expirationTime,banTime FROM " . DATABASE_NAME . ".`user` WHERE token='" . $token . "'";
+        $result = mysqli_query($con, $sql);
+        if (mysqli_num_rows($result) > 0) {
+            $row = mysqli_fetch_assoc($result);
+            //是否可用
+            $nowTime = time();
+            $rowTime = $row['expirationTime'];
+            $activation = true;
+            if ($rowTime != "forever") {
+                $expirationTime = strtotime($rowTime);
+                if ($nowTime > $expirationTime) {
+                    $activation = false;
+                }
+            }
+            $row['activation'] = $activation;
+            $banTime = $row['banTime'];
+            if (!empty($banTime)) {
+                if ($banTime == "forever") {
+                    echo createResponse(ERROR_CODE, "您的账号已被永久封禁。", null);
+                    return;
+                } else {
+                    $banTimeNum = strtotime($banTime);
+                    if ($nowTime < $banTimeNum) {
+                        echo createResponse(ERROR_CODE, "您的账号已被封禁至" . $banTime, null);
+                        return;
+                    }
+                }
+            }
+            echo createResponse(SUCCESS_CODE, "获取成功。", $row);
+        } else {
+            echo createResponse(ERROR_CODE, "登录状态已过期。", null);
+        }
+        mysqli_close($con);
+    }
+}
+
+/*加载用户全部信息（管理员） */
 function getInfo($adminToken, $account)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
@@ -501,7 +553,7 @@ function banUser($account, $appID, $banAccount, $addTime)
             $permission = $row['permission'];
             if ($permission == 1) {
                 $nowTime = time();
-                $createTime = date("Y-m-d H:i:s", $nowTime);
+                //$createTime = date("Y-m-d H:i:s", $nowTime);
                 $expirationTime = date("Y-m-d H:i:s", strtotime($addTime, $nowTime));
                 $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `banTime` = '" . $expirationTime . "' WHERE `account` = '" . $account . "'";
                 if (mysqli_query($con, $updata)) {
