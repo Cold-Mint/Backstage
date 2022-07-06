@@ -2,10 +2,6 @@
 /*数据库链接 */
 include "conf.php";
 
-if (!canUseIp()) {
-    return;
-}
-
 if (empty($_REQUEST['action'])) {
     echo nullValuePrompt("action");
     return;
@@ -31,7 +27,6 @@ switch ($_REQUEST['action']) {
         createBannerTable();
         createAppUpdateTable();
         echo "</table>";
-        initPlan();
         break;
     default:
         echo "您访问的页面无效";
@@ -180,7 +175,7 @@ function createVersionTable()
             `time` varchar(20) DEFAULT NULL
           ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;;";
         if (mysqli_query($con, $sql)) {
-            echo "<tr><td>版本表</td><td>存放ip访问数据。</td><td>成功</td></tr>";
+            echo "<tr><td>版本表</td><td>存放模组版本更新记录。</td><td>成功</td></tr>";
         } else {
             echo "<tr><td>版本表</td><td>" . mysqli_error($con) . "</td><td>失败</td></tr>";
             return false;
