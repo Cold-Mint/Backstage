@@ -68,8 +68,8 @@ switch ($_REQUEST['action']) {
         updateMod($_POST['appID'], $_POST['modId'], $_POST['account'], $_POST['modName'], $_POST['describe'], $_POST['tags'], $_POST['versionName'], $_POST['unitNumber'], $_POST['updateLog'], $icon, $_FILES['file']);
         break;
     case "release":
-        if (empty($_POST['account'])) {
-            echo nullValuePrompt("account");
+        if (empty($_POST['token'])) {
+            echo nullValuePrompt("token");
             return;
         }
         if (empty($_POST['appID'])) {
@@ -116,11 +116,11 @@ switch ($_REQUEST['action']) {
         }
 
         //可选 $_FILES['icon']
-        releaseMod($_POST['appID'], $_POST['modId'], $_POST['account'], $_POST['modName'], $_POST['describe'], $_POST['tags'], $_POST['versionName'], $_POST['unitNumber'], $icon, $_FILES['file']);
+        releaseMod($_POST['appID'], $_POST['modId'], $_POST['token'], $_POST['modName'], $_POST['describe'], $_POST['tags'], $_POST['versionName'], $_POST['unitNumber'], $icon, $_FILES['file']);
         break;
     case "audit":
-        if (empty($_POST['account'])) {
-            echo nullValuePrompt("account");
+        if (empty($_POST['token'])) {
+            echo nullValuePrompt("token");
             return;
         }
         if (empty($_POST['modId'])) {
@@ -131,10 +131,10 @@ switch ($_REQUEST['action']) {
             echo nullValuePrompt("state");
             return;
         }
-        auditMod($_POST['account'], $_POST['modId'], $_POST['state']);
+        auditMod($_POST['token'], $_POST['modId'], $_POST['state']);
         break;
     case "getInfo":
-        if (empty($_POST['account'])) {
+        if (empty($_POST['token'])) {
             echo nullValuePrompt("account");
             return;
         }
@@ -142,7 +142,7 @@ switch ($_REQUEST['action']) {
             echo nullValuePrompt("modId");
             return;
         }
-        getInfo($_POST['account'], $_POST['modId']);
+        getInfo($_POST['token'], $_POST['modId']);
         break;
     case "random":
         //随机推荐
@@ -194,12 +194,8 @@ switch ($_REQUEST['action']) {
         getList(true, $sortMode, $limit);
         break;
     case "comments":
-        if (empty($_POST['account'])) {
-            echo nullValuePrompt("account");
-            return;
-        }
-        if (empty($_POST['appId'])) {
-            echo nullValuePrompt("appId");
+        if (empty($_POST['token'])) {
+            echo nullValuePrompt("token");
             return;
         }
         if (empty($_POST['modId'])) {
@@ -210,7 +206,7 @@ switch ($_REQUEST['action']) {
             echo nullValuePrompt("content");
             return;
         }
-        sendComments($_POST['account'], $_POST['appId'], $_POST['modId'], $_POST['content']);
+        sendComments($_POST['token'], $_POST['modId'], $_POST['content']);
         break;
     case "commentsList":
         if (empty($_POST['modId'])) {
@@ -480,7 +476,7 @@ function addDownloadNum($modId)
 }
 
 /*评论模组 */
-function sendComments($account, $appID, $modId, $content)
+function sendComments($token, $modId, $content)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
@@ -488,10 +484,11 @@ function sendComments($account, $appID, $modId, $content)
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
-        $sqlUser = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "' AND appID='" . $appID . "'";
+        $sqlUser = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE token='" . $token . "'";
         $userResult = mysqli_query($con, $sqlUser);
         if (mysqli_num_rows($userResult) > 0) {
             $userRow = mysqli_fetch_assoc($userResult);
+            $account = $userRow['account'];
             $sqlMod = "SELECT * FROM " . DATABASE_NAME . ".`mod` WHERE id='" . $modId . "'";
             $modResult = mysqli_query($con, $sqlMod);
             if (mysqli_num_rows($modResult) > 0) {
@@ -501,8 +498,8 @@ function sendComments($account, $appID, $modId, $content)
                 $developerResult = mysqli_query($con, $developerUser);
                 if (mysqli_num_rows($developerResult) > 0) {
                     $developerRow = mysqli_fetch_assoc($developerResult);
-                    $createTime = date("Y-m-d H:i:s", time());
-                    send($developerRow['email'], $userRow['userName'] . "评论了您的模组", "<p>" . $developerRow['userName'] . "，您好！</p>
+                   $createTime = date("Y-m-d H:i:s", time());
+                    /*send($developerRow['email'], $userRow['userName'] . "评论了您的模组", "<p>" . $developerRow['userName'] . "，您好！</p>
             <p>" . $userRow['userName'] . "(" . $userRow['account'] . ") 评论了您的模组 " . $modRow['name'] . "(" . $modId . ")</p>
             <p>评论内容:</p>
             <P>" . $content . "</p>
@@ -512,7 +509,7 @@ function sendComments($account, $appID, $modId, $content)
             <p>此通知已发送至与您的 铁锈助手 帐户关联的电子邮件地址。</p>
             <p>这封电子邮件由系统自动生成，请勿回复。如果您需要额外帮助，请加入 <a href=\"https://jq.qq.com/?_wv=1027&k=fg3CUxiI\">铁锈助手官方群</a>。</p>
             <p>祝您生活愉快！</p>
-            <p>-ColdMint</p>", false);
+            <p>-ColdMint</p>", false);*/
                     $addSql = "INSERT INTO " . DATABASE_NAME . ".`mod_comments`(`modId`, `account`, `content`, `time`) VALUES ('" . $modId . "', '" . $account . "', '" . $content . "', '" . $createTime . "')";
                     if (mysqli_query($con, $addSql)) {
 
@@ -527,7 +524,7 @@ function sendComments($account, $appID, $modId, $content)
                 echo createResponse(ERROR_CODE, "找不到id为" . $modId . "的模组。", null);
             }
         } else {
-            echo createResponse(ERROR_CODE, "找不到名为" . $account . "的用户或appId验证失败。", null);
+            echo createResponse(ERROR_CODE, "令牌验证失败。", null);
         }
     }
 }
@@ -560,7 +557,7 @@ function getUpdateRecord($modId)
 }
 
 /*获取模组信息 */
-function getInfo($account, $modId)
+function getInfo($token, $modId)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
@@ -568,7 +565,7 @@ function getInfo($account, $modId)
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
-        $sqlUser = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
+        $sqlUser = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE token='" . $token . "'";
         $userResult = mysqli_query($con, $sqlUser);
         if (mysqli_num_rows($userResult) > 0) {
             $sqlMod = "SELECT * FROM " . DATABASE_NAME . ".`mod` WHERE id='" . $modId . "'";
@@ -579,6 +576,7 @@ function getInfo($account, $modId)
                 $developer = $modRow['developer'];
                 $hidden = $modRow['hidden'];
                 $permission = $userRow['permission'];
+                $account = $userRow['account'];
                 if ($hidden == 1) {
                     if ($developer === $account) {
                         echo createResponse(SUCCESS_CODE, "获取成功。", $modRow);
@@ -609,7 +607,7 @@ function getInfo($account, $modId)
                 echo createResponse(ERROR_CODE, "找不到id为" . $modId . "的模组。", null);
             }
         } else {
-            echo createResponse(ERROR_CODE, "找不到名为" . $account . "的用户。", null);
+            echo createResponse(ERROR_CODE, "令牌验证失败。", null);
         }
     }
     mysqli_close($con);
@@ -727,7 +725,7 @@ function updateMod($appID, $modId, $developer, $name, $describe, $tags, $version
 
 
 /* 发布模组方法*/
-function releaseMod($appID, $modId, $developer, $name, $describe, $tags, $versionName, $unitNumber, $iconFile, $file)
+function releaseMod($appID, $modId, $developerToken, $name, $describe, $tags, $versionName, $unitNumber, $iconFile, $file)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
@@ -735,12 +733,12 @@ function releaseMod($appID, $modId, $developer, $name, $describe, $tags, $versio
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         exit;
     } else {
-        $sqlUser = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE account='" . $developer . "' AND appID='" . $appID . "'";
+        $sqlUser = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE token='" . $developerToken . "' AND appID='" . $appID . "'";
         $userResult = mysqli_query($con, $sqlUser);
         if (mysqli_num_rows($userResult) > 0) {
             $row = mysqli_fetch_assoc($userResult);
             $permission = $row['permission'];
-
+            $account = $row['account'];
             $nameSql = "SELECT * FROM " . DATABASE_NAME . ".`mod` WHERE name='" . $name . "'";
             $nameResult = mysqli_query($con, $nameSql);
             if (mysqli_num_rows($nameResult) > 0) {
@@ -753,7 +751,7 @@ function releaseMod($appID, $modId, $developer, $name, $describe, $tags, $versio
             if (mysqli_num_rows($result) > 0) {
                 echo createResponse(ERROR_CODE, "已存在ID为" . $modId . "的模组。", "@event:Id占用");
             } else {
-                $folder = "../user/" . iconv("UTF-8", "GBK", $developer) . "/mods/" . $modId;
+                $folder = "../user/" . iconv("UTF-8", "GBK", $account) . "/mods/" . $modId;
                 if (!file_exists($folder)) {
                     mkdir($folder, 0777, true);
                 }
@@ -810,7 +808,7 @@ function releaseMod($appID, $modId, $developer, $name, $describe, $tags, $versio
                 if ($permission < 3) {
                     $hidden = 0;
                 }
-                $sql = "INSERT INTO " . DATABASE_NAME . ".`mod`(`id`,`name`, `describe`,`icon`,`screenshots`,`developer`, `tags`,`link`,`versionNumber`,`versionName`,`updateTime`, `creationTime`,`unitNumber`,`hidden`) VALUES ('" . $modId . "','" . $name . "', '" . $describe . "', '" . $realIcon . "', '" . $screenshotData . "', '" . $developer . "', '" . $tags . "', '" . $newFile . "','1','" . $versionName . "','" . $createTime . "', '" . $createTime . "','" . $unitNumber . "','" . $hidden . "')";
+                $sql = "INSERT INTO " . DATABASE_NAME . ".`mod`(`id`,`name`, `describe`,`icon`,`screenshots`,`developer`, `tags`,`link`,`versionNumber`,`versionName`,`updateTime`, `creationTime`,`unitNumber`,`hidden`) VALUES ('" . $modId . "','" . $name . "', '" . $describe . "', '" . $realIcon . "', '" . $screenshotData . "', '" . $account . "', '" . $tags . "', '" . $newFile . "','1','" . $versionName . "','" . $createTime . "', '" . $createTime . "','" . $unitNumber . "','" . $hidden . "')";
                 $sqlUpdate = "INSERT INTO " . DATABASE_NAME . ".`mod_versions`(`id`, `versionName`, `versionNumber`, `updateLog`, `time`) VALUES ('" . $modId . "', '" . $versionName . "', 1, '初始提交', '" . $createTime . "')";
                 mysqli_query($con, $sqlUpdate);
                 if (mysqli_query($con, $sql)) {
@@ -831,7 +829,7 @@ function releaseMod($appID, $modId, $developer, $name, $describe, $tags, $versio
             }
             mysqli_free_result($result);
         } else {
-            echo createResponse(ERROR_CODE, "找不到名为" . $developer . "的用户。", null);
+            echo createResponse(ERROR_CODE, "令牌验证失败。", null);
         }
 
         mysqli_free_result($userResult);
@@ -840,7 +838,7 @@ function releaseMod($appID, $modId, $developer, $name, $describe, $tags, $versio
 }
 
 /*审核模组 */
-function auditMod($account, $modId, $state)
+function auditMod($token, $modId, $state)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
@@ -848,7 +846,7 @@ function auditMod($account, $modId, $state)
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
-        $sqlUser = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE `account`='" . $account . "'";
+        $sqlUser = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE `token`='" . $token . "'";
         $userResult = mysqli_query($con, $sqlUser);
         if (mysqli_num_rows($userResult) > 0) {
             $row = mysqli_fetch_assoc($userResult);
@@ -875,7 +873,7 @@ function auditMod($account, $modId, $state)
                 echo createResponse(ERROR_CODE, "您无权审核模组。", null);
             }
         } else {
-            echo createResponse(ERROR_CODE, "找不到名为" . $account . "的用户。", null);
+            echo createResponse(ERROR_CODE, "令牌验证失败。", null);
         }
         mysqli_free_result($userResult);
     }
@@ -962,7 +960,7 @@ function soldOutMod($account, $modId)
 
 
 /*重新审核模组 */
-function afreshAuditMod($account, $modId)
+function afreshAuditMod($token, $modId)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
@@ -970,12 +968,14 @@ function afreshAuditMod($account, $modId)
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
-        $sqlUser = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE `account`='" . $account . "'";
+        $sqlUser = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE `token`='" . $token . "'";
         $userResult = mysqli_query($con, $sqlUser);
         if (mysqli_num_rows($userResult) > 0) {
             $modSql = "SELECT * FROM " . DATABASE_NAME . ".`mod` WHERE `id`='" . $modId . "'";
             $modResult = mysqli_query($con, $modSql);
             if (mysqli_num_rows($modResult) > 0) {
+                $row = mysqli_fetch_assoc($userResult);
+                $account = $row['account'];
                 $updata = "UPDATE " . DATABASE_NAME . ".`mod` SET `hidden` = '1' WHERE `developer`='" . $account . "' AND `id` = '" . $modId . "'";
                 if (mysqli_query($con, $updata)) {
                     echo createResponse(SUCCESS_CODE, "修改成功", null);
@@ -987,7 +987,7 @@ function afreshAuditMod($account, $modId)
             }
             mysqli_free_result($modResult);
         } else {
-            echo createResponse(ERROR_CODE, "找不到名为" . $account . "的用户。", null);
+            echo createResponse(ERROR_CODE, "令牌验证失败。", null);
         }
         mysqli_free_result($userResult);
     }

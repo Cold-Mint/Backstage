@@ -26,6 +26,7 @@ switch ($_REQUEST['action']) {
         createVersionTable();
         createBannerTable();
         createAppUpdateTable();
+        createSearchRecordTable();
         echo "</table>";
         break;
     default:
@@ -98,6 +99,30 @@ function createDataBase()
     return true;
 }
 
+function createSearchRecordTable(){
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return false;
+    } else {
+        $sql = "CREATE TABLE `search_record` (
+            `keyword` varchar(255) NOT NULL,
+            `number` int(11) DEFAULT NULL,
+            `creationTime` varchar(20) DEFAULT NULL,
+            `latestTime` varchar(20) DEFAULT NULL,
+            PRIMARY KEY (`keyword`)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+        if (mysqli_query($con, $sql)) {
+            echo "<tr><td>搜索记录表</td><td>存放搜索记录。</td><td>成功</td></tr>";
+        } else {
+            echo "<tr><td>搜索记录表</td><td>" . mysqli_error($con) . "</td><td>失败</td></tr>";
+            return false;
+        }
+    }
+    mysqli_close($con);
+    return true;
+}
 
 function createAppUpdateTable(){
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
