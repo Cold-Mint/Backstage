@@ -23,6 +23,35 @@ switch ($_REQUEST['action']) {
         }
         suggestions($_POST['key']);
         break;
+    case "hotSearch":
+        hotSearch();
+        break;
+}
+
+/*热门搜索 */
+function hotSearch()
+{
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return;
+    } else {
+        $suggestionsArray = array();
+        $num = 0;
+        //根据搜索记录建议
+        $sqlMod = "SELECT keyword,number FROM " . DATABASE_NAME . ".`search_record` WHERE `keyword` IS NOT NULL ORDER BY number  DESC LIMIT 10";
+        $result = mysqli_query($con, $sqlMod);
+        if ($result != false && mysqli_num_rows($result) > 0) {
+            while ($row = mysqli_fetch_assoc($result)) {
+                $suggestionsArray[$num] = $row;
+                $num++;
+            }
+            mysqli_free_result($result);
+        }
+        echo createResponse(SUCCESS_CODE, "获取成功，共" . $num . "条记录", $suggestionsArray);
+
+    }
 }
 
 /*获取搜索建议 */
