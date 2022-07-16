@@ -225,6 +225,14 @@ switch ($_REQUEST['action']) {
             $limit = $_POST['limit'];
         }
         getList(true, true, $sortMode, $limit);
+        break;
+    case "getUserIcon":
+        if (empty($_POST['account'])) {
+            echo nullValuePrompt("account");
+            return;
+        }
+        getIcon($_POST['account']);
+        break;
 }
 
 
@@ -264,7 +272,7 @@ function getList($social, $enable, $sortMode, $limit)
     } else {
         $sql = "SELECT * FROM " . DATABASE_NAME . ".`user`";
         if ($social) {
-            $sql =  "SELECT account,userName,email,permission,loginTime,gender,enable FROM " . DATABASE_NAME . ".`user`";
+            $sql = "SELECT account,userName,email,permission,loginTime,gender,enable FROM " . DATABASE_NAME . ".`user`";
         }
         if ($enable) {
             $sql = $sql . " WHERE enable='true'";
@@ -341,7 +349,7 @@ function updateSpaceInfo($token, $userName, $introduce, $gender, $icon, $cover)
                 } else {
                     if (!empty($icon)) {
                         $newIcon = $folder . "/icon.png";
-                        $move =  move_uploaded_file($icon["tmp_name"], $newIcon);
+                        $move = move_uploaded_file($icon["tmp_name"], $newIcon);
                         if ($move) {
                             $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `headIcon` = '" . $newIcon . "' WHERE `token` = '" . $token . "'";
                             mysqli_query($con, $updata);
@@ -357,7 +365,7 @@ function updateSpaceInfo($token, $userName, $introduce, $gender, $icon, $cover)
                 } else {
                     if (!empty($icon)) {
                         $newIcon = $folder . "/cover.png";
-                        $move =  move_uploaded_file($cover["tmp_name"], $newIcon);
+                        $move = move_uploaded_file($cover["tmp_name"], $newIcon);
                         if ($move) {
                             $updata = "UPDATE " . DATABASE_NAME . ".`community` SET `cover` = '" . $newIcon . "' WHERE `token` = '" . $token . "'";
                             mysqli_query($con, $updata);
@@ -371,6 +379,26 @@ function updateSpaceInfo($token, $userName, $introduce, $gender, $icon, $cover)
         }
     }
     mysqli_close($con);
+}
+
+/*获取当前用户的激活信息 */
+function getIcon($account)
+{
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+    } else {
+        $sql = "SELECT userName,headIcon FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
+        $result = mysqli_query($con, $sql);
+        if (mysqli_num_rows($result) > 0) {
+            $row = mysqli_fetch_assoc($result);
+            echo createResponse(SUCCESS_CODE, "获取成功。", $row);
+        } else {
+            echo createResponse(ERROR_CODE, "获取失败。", null);
+        }
+        mysqli_close($con);
+    }
 }
 
 /*获取当前用户的激活信息 */
@@ -460,7 +488,7 @@ function getSocialInfo($account)
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
-        $sql =  "SELECT account,userName,email,permission,loginTime,gender,enable,expirationTime FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
+        $sql = "SELECT account,userName,email,permission,loginTime,gender,enable,expirationTime FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
         $result = mysqli_query($con, $sql);
         if (mysqli_num_rows($result) > 0) {
             $row = mysqli_fetch_assoc($result);
@@ -481,10 +509,10 @@ function getSpaceInfo($account)
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
-        $sql =  "SELECT account,userName,headIcon,email,permission,loginTime,gender,enable,expirationTime FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
+        $sql = "SELECT account,userName,headIcon,email,permission,loginTime,gender,enable,expirationTime FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
         $result = mysqli_query($con, $sql);
         $row = mysqli_fetch_assoc($result);
-        $sql2 =  "SELECT * FROM " . DATABASE_NAME . ".`community` WHERE account='" . $account . "'";
+        $sql2 = "SELECT * FROM " . DATABASE_NAME . ".`community` WHERE account='" . $account . "'";
         $result2 = mysqli_query($con, $sql2);
         $row2 = mysqli_fetch_assoc($result2);
         $end = null;

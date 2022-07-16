@@ -42,7 +42,7 @@ function hotSearch()
         //根据搜索记录建议
         $sqlMod = "SELECT keyword,number FROM " . DATABASE_NAME . ".`search_record` WHERE `keyword` IS NOT NULL ORDER BY number  DESC LIMIT 10";
         $result = mysqli_query($con, $sqlMod);
-        if ($result != false && mysqli_num_rows($result) > 0) {
+        if ($result && mysqli_num_rows($result) > 0) {
             while ($row = mysqli_fetch_assoc($result)) {
                 $suggestionsArray[$num] = $row;
                 $num++;
@@ -66,9 +66,9 @@ function suggestions($key)
         $suggestionsArray = array();
         $num = 0;
         //根据搜索记录建议
-        $sqlMod = "SELECT keyword FROM " . DATABASE_NAME . ".`search_record` WHERE `keyword` Like '%" . $key . "%' ORDER BY latestTime  DESC ";
+        $sqlMod = "SELECT `keyword` FROM " . DATABASE_NAME . ".`search_record` WHERE `keyword` Like '%" . $key . "%' ORDER BY latestTime  DESC ";
         $result = mysqli_query($con, $sqlMod);
-        if ($result != false && mysqli_num_rows($result) > 0) {
+        if ($result && mysqli_num_rows($result) > 0) {
             while ($row = mysqli_fetch_assoc($result)) {
                 $suggestionsArray[$num] = $row['keyword'];
                 $num++;
@@ -76,9 +76,9 @@ function suggestions($key)
             mysqli_free_result($result);
         }
         //根据模组名建议
-        $sqlMod = "SELECT name FROM " . DATABASE_NAME . ".`mod` WHERE `name` Like '%" . $key . "%'";
+        $sqlMod = "SELECT `name` FROM " . DATABASE_NAME . ".`mod` WHERE `name` Like '%" . $key . "%'";
         $result = mysqli_query($con, $sqlMod);
-        if ($result != false && mysqli_num_rows($result) > 0) {
+        if ($result && mysqli_num_rows($result) > 0) {
             while ($row = mysqli_fetch_assoc($result)) {
                 $suggestionsArray[$num] = $row['name'];
                 $num++;
@@ -86,9 +86,9 @@ function suggestions($key)
             mysqli_free_result($result);
         }
         //根据用户名建议
-        $sqlMod = "SELECT userName FROM " . DATABASE_NAME . ".`user` WHERE  `userName` Like '%" . $key . "%' AND `enable`='true'";
+        $sqlMod = "SELECT `userName` FROM " . DATABASE_NAME . ".`user` WHERE  `userName` Like '%" . $key . "%' AND `enable`='true'";
         $result = mysqli_query($con, $sqlMod);
-        if ($result != false && mysqli_num_rows($result) > 0) {
+        if ($result && mysqli_num_rows($result) > 0) {
             while ($row = mysqli_fetch_assoc($result)) {
                 $suggestionsArray[$num] = $row['userName'];
                 $num++;
@@ -119,11 +119,10 @@ function searchAll($key)
             $number = $row['number'];
             $number++;
             $sql = "UPDATE " . DATABASE_NAME . ".`search_record`  SET `latestTime` = '" . $createTime . "',`number` = '" . $number . "'  WHERE `keyword` = '" . $key . "'";
-            mysqli_query($con, $sql);
         } else {
             $sql = "INSERT INTO " . DATABASE_NAME . ".`search_record` (keyword,number,creationTime,latestTime) VALUES ('" . $key . "','1','" . $createTime . "','" . $createTime . "')";
-            mysqli_query($con, $sql);
         }
+        mysqli_query($con, $sql);
 
         $total = array();
         $num = 0;
@@ -133,7 +132,7 @@ function searchAll($key)
         //搜索模组（基于名称）
         $sqlMod = "SELECT * FROM " . DATABASE_NAME . ".`mod` WHERE `name` Like '%" . $key . "%' AND `hidden`=0";
         $result = mysqli_query($con, $sqlMod);
-        if ($result != false && mysqli_num_rows($result) > 0) {
+        if ($result && mysqli_num_rows($result) > 0) {
             $searchType = new searchType("mod");
             $typeArray[$typeNum] = $searchType;
             $typeNum++;
@@ -148,7 +147,7 @@ function searchAll($key)
         //搜索用户（基于用户名）
         $sqlMod = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE `userName` Like '%" . $key . "%' AND `enable`='true'";
         $result = mysqli_query($con, $sqlMod);
-        if ($result != false && mysqli_num_rows($result) > 0) {
+        if ($result && mysqli_num_rows($result) > 0) {
             $searchType = new searchType("user");
             $typeArray[$typeNum] = $searchType;
             $typeNum++;
@@ -163,7 +162,7 @@ function searchAll($key)
         //搜索动态（基于动态内容）
         $sqlMod = "SELECT * FROM " . DATABASE_NAME . ".`dynamic` WHERE `content` Like '%" . $key . "%'";
         $result = mysqli_query($con, $sqlMod);
-        if ($result != false && mysqli_num_rows($result) > 0) {
+        if ($result && mysqli_num_rows($result) > 0) {
             $searchType = new searchType("dynamic");
             $typeArray[$typeNum] = $searchType;
             $typeNum++;
@@ -178,7 +177,7 @@ function searchAll($key)
         //搜索模组讨论（基于内容）
         $sqlMod = "SELECT * FROM " . DATABASE_NAME . ".`mod_comments` WHERE `content` Like '%" . $key . "%'";
         $result = mysqli_query($con, $sqlMod);
-        if ($result != false && mysqli_num_rows($result) > 0) {
+        if ($result && mysqli_num_rows($result) > 0) {
             $searchType = new searchType("mod_comments");
             $typeArray[$typeNum] = $searchType;
             $typeNum++;
@@ -192,7 +191,7 @@ function searchAll($key)
         //搜索更新记录（基于日志）
         $sqlMod = "SELECT * FROM " . DATABASE_NAME . ".`mod_versions` WHERE `updateLog` Like '%" . $key . "%'";
         $result = mysqli_query($con, $sqlMod);
-        if ($result != false && mysqli_num_rows($result) > 0) {
+        if ($result && mysqli_num_rows($result) > 0) {
             $searchType = new searchType("mod_versions");
             $typeArray[$typeNum] = $searchType;
             $typeNum++;
@@ -207,7 +206,7 @@ function searchAll($key)
         //搜索激活套餐
         $sqlMod = "SELECT * FROM " . DATABASE_NAME . ".`purchase_plan` WHERE `name` Like '%" . $key . "%' OR `describe` Like '%" . $key . "%' ORDER BY price ASC";
         $result = mysqli_query($con, $sqlMod);
-        if ($result != false && mysqli_num_rows($result) > 0) {
+        if ($result && mysqli_num_rows($result) > 0) {
             $searchType = new searchType("purchase_plan");
             $typeArray[$typeNum] = $searchType;
             $typeNum++;
