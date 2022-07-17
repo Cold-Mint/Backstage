@@ -13,21 +13,15 @@ if (empty($_REQUEST['action'])) {
 
 switch ($_REQUEST['action']) {
     case "send":
-        if (empty($_POST['account'])) {
-            echo nullValuePrompt("account");
+        if (empty($_POST['token'])) {
+            echo nullValuePrompt("token");
             return;
         }
-
-        if (empty($_POST['appId'])) {
-            echo nullValuePrompt("appId");
-            return;
-        }
-
         if (empty($_POST['context'])) {
             echo nullValuePrompt("context");
             return;
         }
-        send($_POST['account'], $_POST['appId'], $_POST['context']);
+        send($_POST['token'], $_POST['context']);
         break;
     case "list":
         $account = null;
@@ -102,8 +96,7 @@ function getAllDynamic($account, $limit)
                 while ($row2 = mysqli_fetch_assoc($result2)) {
                     $sql2 =  "SELECT account,userName,headIcon,email,permission,loginTime,gender,`enable` FROM " . DATABASE_NAME . ".`user` WHERE account='" . $row2['account'] . "' AND  enable='true'";
                     $result3 = mysqli_query($con, $sql2);
-                    if($result3!=false)
-                    {
+                    if ($result3 != false) {
                         $row3 = mysqli_fetch_assoc($result3);
                         $total[$num2] = array_merge($row2, $row3);
                     }
@@ -178,7 +171,7 @@ function delete($account, $appId, $id)
 }
 
 /*发送动态 */
-function send($account, $appId, $context)
+function send($token, $context)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
@@ -186,19 +179,20 @@ function send($account, $appId, $context)
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
-        $sql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "' AND appID='" . $appId . "'";
+        $sql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE token='" . $token . "'";
         $result = mysqli_query($con, $sql);
+        $row = mysqli_fetch_assoc($result);
         if (mysqli_num_rows($result) > 0) {
             $nowTime = time();
             $createTime = date("Y-m-d H:i:s", $nowTime);
-            $sql2 = "INSERT INTO " . DATABASE_NAME . ".`dynamic` (account,content,time) VALUES ('" . $account . "','" . $context . "','" . $createTime . "')";
+            $sql2 = "INSERT INTO " . DATABASE_NAME . ".`dynamic` (account,content,time) VALUES ('" . $row['account'] . "','" . $context . "','" . $createTime . "')";
             if (mysqli_query($con, $sql2)) {
                 echo createResponse(SUCCESS_CODE, "发布成功", null);
             } else {
                 echo createResponse(ERROR_CODE, "发布失败", null);
             }
         } else {
-            echo createResponse(ERROR_CODE, "找不到用户或appID验证失败。", null);
+            echo createResponse(ERROR_CODE, "token验证失败", null);
         }
     }
     mysqli_close($con);

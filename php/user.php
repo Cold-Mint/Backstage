@@ -139,6 +139,7 @@ switch ($_REQUEST['action']) {
         }
         getInfo($_POST['adminToken'], $_POST['account']);
         break;
+        //获取用户激活信息
     case "getUserActivationInfo":
         if (empty($_POST['token'])) {
             echo nullValuePrompt("token");
@@ -146,6 +147,7 @@ switch ($_REQUEST['action']) {
         }
         getUserActivationInfo($_POST['token']);
         break;
+        //获取空间信息
     case "getSpaceInfo":
         if (empty($_POST['account'])) {
             echo nullValuePrompt("account");
@@ -173,6 +175,7 @@ switch ($_REQUEST['action']) {
         }
         verification($_POST['account'], $_POST['passWord'], $_POST['appID'], $isEmail);
         break;
+        //更新空间信息
     case "updateSpaceInfo":
         if (empty($_POST['token'])) {
             echo nullValuePrompt("token");
@@ -227,6 +230,7 @@ switch ($_REQUEST['action']) {
         getList(true, true, $sortMode, $limit);
         break;
     case "getUserIcon":
+        //获取用户头像
         if (empty($_POST['account'])) {
             echo nullValuePrompt("account");
             return;
@@ -832,7 +836,8 @@ function login($account, $passWord, $appID, $isEmail)
                 $arr = array(
                     "token" => $token,
                     "expirationTime" => $row['expirationTime'],
-                    "activation" => $activation
+                    "activation" => $activation,
+                    "account" => $row['account']
                 );
                 echo createResponse(SUCCESS_CODE, "登录成功", $arr);
             }
