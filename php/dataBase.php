@@ -27,6 +27,10 @@ switch ($_REQUEST['action']) {
         createBannerTable();
         createAppUpdateTable();
         createSearchRecordTable();
+        createErrorRecordTable();
+        createTemplatePackageTable();
+        createTemplateTable();
+        createSubscribeRecordTable();
         echo "</table>";
         break;
     default:
@@ -57,6 +61,8 @@ function initPlan()
 }
 
 
+
+
 /**
  * 删除数据库
  */
@@ -78,6 +84,9 @@ function deleteDataBase()
     return true;
 }
 
+
+
+
 /**
  * 创建数据库(不使用)
  */
@@ -94,6 +103,123 @@ function createDataBase()
     } else {
         echo "<tr><td>数据库</td><td>" . mysqli_error($con) . "</td><td>失败</td></tr>";
         return false;
+    }
+    mysqli_close($con);
+    return true;
+}
+
+//创建订阅表
+function createSubscribeRecordTable(){
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return false;
+    } else {
+        $sql = "CREATE TABLE `subscribe_record` (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `account` varchar(20) DEFAULT NULL,
+            `packageId` varchar(20) DEFAULT NULL,
+            `time` varchar(20) DEFAULT NULL,
+            PRIMARY KEY (`id`)
+          ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;";
+        if (mysqli_query($con, $sql)) {
+            echo "<tr><td>模板包订阅记录表</td><td>存放模板包信息。</td><td>成功</td></tr>";
+        } else {
+            echo "<tr><td>模板包订阅记录表</td><td>" . mysqli_error($con) . "</td><td>失败</td></tr>";
+            return false;
+        }
+    }
+    mysqli_close($con);
+    return true;
+}
+
+//创建模板包表
+function createTemplatePackageTable(){
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return false;
+    } else {
+        $sql = "CREATE TABLE `template_package` (
+            `id` varchar(20) NOT NULL,
+            `name` varchar(20) DEFAULT NULL,
+            `describe` varchar(255) DEFAULT NULL,
+            `developer` varchar(20) DEFAULT NULL,
+            `versionName` varchar(20) DEFAULT NULL,
+            `versionNumber` int(11) DEFAULT NULL,
+            `appVersionName` varchar(20) DEFAULT NULL,
+            `appVersionNumber` int(11) DEFAULT NULL,
+            `public` varchar(20) DEFAULT 'true',
+            `createTime` varchar(20) DEFAULT NULL,
+            `modificationTime` varchar(20) DEFAULT NULL,
+            `downloadNumber` int(11) DEFAULT 0,
+            `templateNumber` int(11) DEFAULT 0,
+            PRIMARY KEY (`id`)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+        if (mysqli_query($con, $sql)) {
+            echo "<tr><td>模板包表</td><td>存放模板包信息。</td><td>成功</td></tr>";
+        } else {
+            echo "<tr><td>模板包表</td><td>" . mysqli_error($con) . "</td><td>失败</td></tr>";
+            return false;
+        }
+    }
+    mysqli_close($con);
+    return true;
+}
+
+//创建模板包表
+function createTemplateTable(){
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return false;
+    } else {
+        $sql = "CREATE TABLE `template_list` (
+            `id` varchar(20) NOT NULL,
+            `title` varchar(255) DEFAULT NULL,
+            `content` text DEFAULT NULL,
+            `packageId` varchar(20) DEFAULT NULL,
+            `developer` varchar(20) DEFAULT NULL,
+            `createTime` varchar(20) DEFAULT NULL,
+            `modificationTime` varchar(20) DEFAULT NULL,
+            `deleted` varchar(20) DEFAULT 'false',
+            PRIMARY KEY (`id`)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+        if (mysqli_query($con, $sql)) {
+            echo "<tr><td>模板表</td><td>存放模板信息。</td><td>成功</td></tr>";
+        } else {
+            echo "<tr><td>模板表</td><td>" . mysqli_error($con) . "</td><td>失败</td></tr>";
+            return false;
+        }
+    }
+    mysqli_close($con);
+    return true;
+}
+
+function createErrorRecordTable(){
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return false;
+    } else {
+        $sql = "CREATE TABLE `error_record` (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `message` text DEFAULT NULL,
+            `time` varchar(20) DEFAULT NULL,
+            `versionName` varchar(20) DEFAULT NULL,
+            `versionNumber` int(11) DEFAULT NULL,
+            PRIMARY KEY (`id`)
+          ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;";
+        if (mysqli_query($con, $sql)) {
+            echo "<tr><td>错误记录表</td><td>存放错误异常记录。</td><td>成功</td></tr>";
+        } else {
+            echo "<tr><td>错误记录表</td><td>" . mysqli_error($con) . "</td><td>失败</td></tr>";
+            return false;
+        }
     }
     mysqli_close($con);
     return true;

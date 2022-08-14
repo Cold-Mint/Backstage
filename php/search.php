@@ -95,6 +95,18 @@ function suggestions($key)
             }
             mysqli_free_result($result);
         }
+
+        //根据模板名建议
+        $sqlMod = "SELECT `name` FROM " . DATABASE_NAME . ".`template_package` WHERE `name` Like '%" . $key . "%' And public='true'";
+        $result = mysqli_query($con, $sqlMod);
+        if ($result && mysqli_num_rows($result) > 0) {
+            while ($row = mysqli_fetch_assoc($result)) {
+                $suggestionsArray[$num] = $row['name'];
+                $num++;
+            }
+            mysqli_free_result($result);
+        }
+
         $endArray = array_unique($suggestionsArray);
         echo createResponse(SUCCESS_CODE, "获取成功，共" . count($endArray) . "条记录", $endArray);
     }
@@ -217,6 +229,22 @@ function searchAll($key)
             }
             mysqli_free_result($result);
         }
+
+        //搜索模板包
+        $sqlMod = "SELECT * FROM " . DATABASE_NAME . ".`template_package` WHERE `name` Like '%" . $key . "%' And public='true' ORDER BY name ASC";
+        $result = mysqli_query($con, $sqlMod);
+        if ($result && mysqli_num_rows($result) > 0) {
+            $searchType = new searchType("template_package");
+            $typeArray[$typeNum] = $searchType;
+            $typeNum++;
+            while ($row = mysqli_fetch_assoc($result)) {
+                $total[$num] = new searchResult($row['id'], $row['name'], "template_package", $row['describe'], null);
+                $searchType->addNumber();
+                $num++;
+            }
+            mysqli_free_result($result);
+        }
+
         $allArray = array();
         $allArray['total'] = $total;
         $allArray['type'] = $typeArray;
