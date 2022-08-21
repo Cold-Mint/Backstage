@@ -102,6 +102,13 @@ switch ($_REQUEST['action']) {
         }
         getTemplateList($_POST['packageId']);
         break;
+    case "getTemplate":
+        if (empty($_POST['id'])) {
+            echo nullValuePrompt("id");
+            return;
+        }
+        getTemplate($_POST['id']);
+        break;
     case "subscription":
         if (empty($_POST['token'])) {
             echo nullValuePrompt("token");
@@ -122,8 +129,146 @@ switch ($_REQUEST['action']) {
             echo nullValuePrompt("packageId");
             return;
         }
+        deleteSubscription($_POST['token'], $_POST['packageId']);
+        break;
+    case "getSubscriptionData":
+        if (empty($_POST['token'])) {
+            echo nullValuePrompt("token");
+            return;
+        }
+        getSubscriptionData($_POST['token']);
         break;
 }
+
+//获取模板
+function getTemplate($id)
+{
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return;
+    } else {
+        $userSql = "SELECT * FROM " . DATABASE_NAME . ".`template_list` WHERE id='" . $id . "'";
+        $userResult = mysqli_query($con, $userSql);
+        if (mysqli_num_rows($userResult) > 0) {
+            $userRow = mysqli_fetch_assoc($userResult);
+            echo createResponse(SUCCESS_CODE, "获取成功。", $userRow);
+        } else {
+            echo createResponse(ERROR_CODE, "找不到模板。", null);
+        }
+    }
+    mysqli_close($con);
+}
+
+//获取订阅信息
+function getSubscriptionData($token)
+{
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return;
+    } else {
+
+        $userSql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE token='" . $token . "'";
+        $userResult = mysqli_query($con, $userSql);
+        if (mysqli_num_rows($userResult) > 0) {
+            $userRow = mysqli_fetch_assoc($userResult);
+            $account = $userRow['account'];
+            $condition = "";
+            $total = array();
+            $subscribePackageSql = "SELECT * FROM " . DATABASE_NAME . ".`subscribe_record` WHERE account='" . $account . "'";
+            $subscribePackageResult = mysqli_query($con, $subscribePackageSql);
+            if (mysqli_num_rows($subscribePackageResult) > 0) {
+                $num = 0;
+                while ($row = mysqli_fetch_assoc($subscribePackageResult)) {
+                    if ($num == 0) {
+                        $condition =  "id='" . $row['packageId'] . "'";
+                    } else {
+                        $condition =  $condition . " OR id='" . $row['packageId'] . "'";
+                    }
+                    $num++;
+                }
+
+                $sql = "SELECT * FROM " . DATABASE_NAME . ".`template_package` WHERE (public='true' AND templateNumber>0) AND (" . $condition . ")";
+                $result = mysqli_query($con, $sql);
+                if (mysqli_num_rows($result) > 0) {
+                    $num = 0;
+                    while ($row = mysqli_fetch_assoc($result)) {
+                        $sqlList = "SELECT * FROM " . DATABASE_NAME . ".`template_list` WHERE packageId='" . $row['id'] . "'";
+                        $resultList = mysqli_query($con, $sqlList);
+                        $list = array();
+                        if (mysqli_num_rows($resultList) > 0) {
+                            $num1 = 0;
+                            while ($listRow = mysqli_fetch_assoc($resultList)) {
+                                $list[$num1] = $listRow;
+                                $num1++;
+                            }
+                        }
+                        $row['templateList'] = $list;
+                        $total[$num] = $row;
+                        $num++;
+                    }
+                    echo createResponse(SUCCESS_CODE, "获取成功，共" . $num . "条记录", $total);
+                } else {
+                    echo createResponse(ERROR_CODE, "没有模板包。", null);
+                }
+            } else {
+                echo createResponse(ERROR_CODE, "没有订阅信息。", null);
+            }
+        } else {
+            echo createResponse(ERROR_CODE, "令牌验证失败。", null);
+        }
+    }
+    mysqli_close($con);
+}
+
+
+//退订模板包
+function deleteSubscription($token, $packageId)
+{
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return;
+    } else {
+        $userSql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE token='" . $token . "'";
+        $userResult = mysqli_query($con, $userSql);
+        if (mysqli_num_rows($userResult) > 0) {
+            $userRow = mysqli_fetch_assoc($userResult);
+            $account = $userRow['account'];
+            $packageSql = "SELECT * FROM " . DATABASE_NAME . ".`template_package` WHERE  id='" . $packageId . "'  AND public='true' ";
+            $packageResult = mysqli_query($con, $packageSql);
+            if (mysqli_num_rows($packageResult) > 0) {
+                $packageRow = mysqli_fetch_assoc($packageResult);
+                $subscriptionNumber = $packageRow['subscriptionNumber'];
+                $subscribePackageSql = "SELECT * FROM " . DATABASE_NAME . ".`subscribe_record` WHERE account='" . $account . "' AND packageId='" . $packageId . "'";
+                $subscribePackageResult = mysqli_query($con, $subscribePackageSql);
+                if (mysqli_num_rows($subscribePackageResult) > 0) {
+                    $delSql = "DELETE FROM " . DATABASE_NAME . ".`subscribe_record` WHERE account='" . $account . "' AND packageId='" . $packageId . "'";
+                    if (mysqli_query($con, $delSql)) {
+                        $subscriptionNumber--;
+                        $addSql2 = "UPDATE " . DATABASE_NAME . ".`template_package` SET `subscriptionNumber` = " . $subscriptionNumber . " WHERE `id` = '" . $packageId . "'";
+                        mysqli_query($con, $addSql2);
+                        echo createResponse(SUCCESS_CODE, "退订成功。", null);
+                    } else {
+                        echo createResponse(ERROR_CODE, "退订失败。", null);
+                    }
+                } else {
+                    echo createResponse(ERROR_CODE, "没有订阅记录。", null);
+                }
+            } else {
+                echo createResponse(ERROR_CODE, "找不到id为" . $packageId . "的模板包或目标模板包为私有状态。", null);
+            }
+        } else {
+            echo createResponse(ERROR_CODE, "令牌验证失败。", null);
+        }
+    }
+    mysqli_close($con);
+}
+
 
 //订阅模板包
 function subscription($token, $packageId)
@@ -142,6 +287,8 @@ function subscription($token, $packageId)
             $packageSql = "SELECT * FROM " . DATABASE_NAME . ".`template_package` WHERE  id='" . $packageId . "'  AND public='true' ";
             $packageResult = mysqli_query($con, $packageSql);
             if (mysqli_num_rows($packageResult) > 0) {
+                $packageRow = mysqli_fetch_assoc($packageResult);
+                $subscriptionNumber = $packageRow['subscriptionNumber'];
                 $subscribePackageSql = "SELECT * FROM " . DATABASE_NAME . ".`subscribe_record` WHERE account='" . $account . "' AND packageId='" . $packageId . "'";
                 $subscribePackageResult = mysqli_query($con, $subscribePackageSql);
                 if (mysqli_num_rows($subscribePackageResult) > 0) {
@@ -151,15 +298,17 @@ function subscription($token, $packageId)
                     $createTime = date("Y-m-d H:i:s", $nowTime);
                     $addSql = "INSERT INTO " . DATABASE_NAME . ".`subscribe_record`(`account`, `packageId`, `time`) VALUES ('" . $account . "', '" . $packageId . "','" . $createTime . "')";
                     if (mysqli_query($con, $addSql)) {
+                        $subscriptionNumber++;
+                        $addSql2 = "UPDATE " . DATABASE_NAME . ".`template_package` SET `subscriptionNumber` = " . $subscriptionNumber . " WHERE `id` = '" . $packageId . "'";
+                        mysqli_query($con, $addSql2);
                         echo createResponse(SUCCESS_CODE, "订阅成功", null);
                     } else {
                         echo createResponse(ERROR_CODE, "订阅失败。", null);
                     }
                 }
-            }else{
+            } else {
                 echo createResponse(ERROR_CODE, "找不到id为" . $packageId . "的模板包或目标模板包为私有状态。", null);
             }
-       
         } else {
             echo createResponse(ERROR_CODE, "令牌验证失败。", null);
         }
@@ -217,7 +366,7 @@ function addTemplate($token, $id, $title, $content, $packageId)
 }
 
 
-//获取公开的模板包列表
+//获取模板列表
 function getTemplateList($packageId)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
@@ -226,9 +375,9 @@ function getTemplateList($packageId)
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
-        $sql = "SELECT * FROM " . DATABASE_NAME . ".`template_list` WHERE packageId='" . $packageId . "'  AND public='true'";
+        $sql = "SELECT * FROM " . DATABASE_NAME . ".`template_list` WHERE packageId='" . $packageId . "'";
         $result = mysqli_query($con, $sql);
-        
+
         if (mysqli_num_rows($result) > 0) {
             $num = 0;
             $total = array();
@@ -266,6 +415,7 @@ function getPublicTemplatePackageList($token)
                 $num = 0;
                 while ($row = mysqli_fetch_assoc($subscribePackageResult)) {
                     $subscribeList[$num] = $row['packageId'];
+                    $num++;
                 }
             }
 
@@ -274,7 +424,7 @@ function getPublicTemplatePackageList($token)
             if (mysqli_num_rows($result) > 0) {
                 $num = 0;
                 while ($row = mysqli_fetch_assoc($result)) {
-                    $row['subscribe'] = in_array($row['id'],$subscribeList);
+                    $row['subscribe'] = in_array($row['id'], $subscribeList);
                     $total[$num] = $row;
                     $num++;
                 }
@@ -282,7 +432,7 @@ function getPublicTemplatePackageList($token)
             } else {
                 echo createResponse(ERROR_CODE, "没有模板包。", null);
             }
-        }else{
+        } else {
             echo createResponse(ERROR_CODE, "令牌验证失败。", null);
         }
     }

@@ -125,7 +125,7 @@ switch ($_REQUEST['action']) {
             echo nullValuePrompt("account");
             return;
         }
-        getSocialInfo($_POST['account'], true);
+        getSocialInfo($_POST['account']);
         break;
     case "getInfo":
         //获取用户信息
@@ -385,7 +385,7 @@ function updateSpaceInfo($token, $userName, $introduce, $gender, $icon, $cover)
     mysqli_close($con);
 }
 
-/*获取当前用户的激活信息 */
+/*获取当前用户图像 */
 function getIcon($account)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
@@ -405,6 +405,20 @@ function getIcon($account)
     }
 }
 
+/*
+更新ip（私有方法）
+ */
+function updateIp($account){
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    $ip = getIp();
+    $sqlIp = "UPDATE " . DATABASE_NAME . ".`ip_record` SET `account` = '" . $account . "' WHERE `ip` = '" . $ip . "'";
+    $sqlIp2 = "UPDATE " . DATABASE_NAME . ".`user` SET `ip` = '" . $ip . "' WHERE `account` = '" . $account . "'";
+    mysqli_query($con, $sqlIp);
+    mysqli_query($con, $sqlIp2);
+    mysqli_close($con);
+}
+
 /*获取当前用户的激活信息 */
 function getUserActivationInfo($token)
 {
@@ -421,6 +435,7 @@ function getUserActivationInfo($token)
             //是否可用
             $nowTime = time();
             $rowTime = $row['expirationTime'];
+            $account = $row['account'];
             $activation = true;
             if ($rowTime != "forever") {
                 $expirationTime = strtotime($rowTime);
@@ -442,6 +457,7 @@ function getUserActivationInfo($token)
                     }
                 }
             }
+            updateIp($account);
             echo createResponse(SUCCESS_CODE, "获取成功。", $row);
         } else {
             echo createResponse(ERROR_CODE, "登录状态已过期。", null);
@@ -513,15 +529,26 @@ function getSpaceInfo($account)
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
-        $sql = "SELECT account,userName,headIcon,email,permission,loginTime,gender,enable,expirationTime FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
+        $sql = "SELECT account,userName,headIcon,email,permission,loginTime,gender,enable,expirationTime,ip FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
         $result = mysqli_query($con, $sql);
         $row = mysqli_fetch_assoc($result);
         $sql2 = "SELECT * FROM " . DATABASE_NAME . ".`community` WHERE account='" . $account . "'";
         $result2 = mysqli_query($con, $sql2);
         $row2 = mysqli_fetch_assoc($result2);
+        $ip = $row['ip'];
+        $sql3 = "SELECT * FROM " . DATABASE_NAME . ".`ip_record` WHERE ip='" . $ip . "'";
+        $result3 = mysqli_query($con, $sql3);
+        $row3 = mysqli_fetch_assoc($result3);
         $end = null;
         if ($row != null && $row2 != null) {
             $end = array_merge($row, $row2);
+            if($row3['country'] == "中国")
+            {
+                $end['location'] = $row3['province'];
+            }else{
+                $end['location'] = $row3['country'];
+            }
+            unset($end['ip']);
         }
         if ($end != null && sizeof($end) > 0) {
             echo createResponse(SUCCESS_CODE, "获取成功", $end);
@@ -648,6 +675,7 @@ function register($account, $userName, $passWord, $email, $appID)
         mysqli_query($con, $sqlLock2);
         mysqli_query($con, $sqlcommunity);
         if (mysqli_query($con, $sql)) {
+            updateIp($account);
             echo createResponse(SUCCESS_CODE, "注册成功。", null);
             /*send($email, "请激活您的铁锈助手账号", "<p>" . $userName . "，您好！</p>
             <p>您登录帐户" . $account . "所需的令牌验证码为：</p>
@@ -839,6 +867,7 @@ function login($account, $passWord, $appID, $isEmail)
                     "activation" => $activation,
                     "account" => $row['account']
                 );
+                updateIp($account);
                 echo createResponse(SUCCESS_CODE, "登录成功", $arr);
             }
         } else {

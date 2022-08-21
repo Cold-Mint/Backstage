@@ -62,21 +62,29 @@ function canUseIp()
             }
         } else {
             //没有数据，添加记录(解析目标ip)
-            $ch = curl_init();
-            // 设置URL和相应的选项
-            curl_setopt($ch, CURLOPT_URL, "http://ip.useragentinfo.com/json?ip=" . $ip);
-            curl_setopt($ch, CURLOPT_HEADER, 0);
-            //设置不直接输出
-            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
-            //获取返回值
-            $output = curl_exec($ch);
-            // 关闭cURL资源，并且释放系统资源
-            curl_close($ch);
-            $arr = json_decode($output, true);
-            $country = $arr['country'];
-            $province = $arr['province'];
-            $city = $arr['city'];
-            $area = $arr['area'];
+            $curl = curl_init();
+            curl_setopt_array($curl, array(
+                CURLOPT_URL => 'https://api01.aliyun.venuscn.com/ip?ip='.$ip,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_ENCODING => '',
+                CURLOPT_MAXREDIRS => 10,
+                CURLOPT_TIMEOUT => 0,
+                CURLOPT_FOLLOWLOCATION => true,
+                CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+                CURLOPT_CUSTOMREQUEST => 'GET',
+                CURLOPT_HTTPHEADER => array(
+                    'Authorization: AppCode 3643a0325a294c6980f9de302429395e',
+                    'User-Agent: server'
+                ),
+            ));
+
+            $response = curl_exec($curl);
+            curl_close($curl);
+            $arr = json_decode($response, true);
+            $country = $arr['data']['country'];
+            $province = $arr['data']['region'];
+            $city = $arr['data']['city'];
+            $area = $arr['data']['district'];
             $insetSql = "INSERT INTO " . DATABASE_NAME . ".`ip_record`(`ip`, `time`,`country`,`province`,`city`,`area`, `available`, `count`) VALUES ('" . $ip . "', '" . $nowTimeRow . "','" . $country . "','" . $province . "', '" . $city . "','" . $area . "','true', '1')";
             mysqli_query($con, $insetSql);
             $resultBool = true;
