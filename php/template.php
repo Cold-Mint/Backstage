@@ -375,16 +375,21 @@ function getTemplateList($packageId)
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
+        $sqlPackage = "SELECT * FROM " . DATABASE_NAME . ".`template_package` WHERE id='" . $packageId . "'";
+        $packageResult = mysqli_query($con, $sqlPackage);
         $sql = "SELECT * FROM " . DATABASE_NAME . ".`template_list` WHERE packageId='" . $packageId . "'";
         $result = mysqli_query($con, $sql);
-
-        if (mysqli_num_rows($result) > 0) {
+        if (mysqli_num_rows($packageResult) > 0 && mysqli_num_rows($result) > 0) {
             $num = 0;
             $total = array();
+            $list = array();
+            $sqlrow = mysqli_fetch_assoc($packageResult);
+            $total['packageData'] = $sqlrow;
             while ($row = mysqli_fetch_assoc($result)) {
-                $total[$num] = $row;
+                $list[$num] = $row;
                 $num++;
             }
+            $total['templateList'] = $list;
             echo createResponse(SUCCESS_CODE, "获取成功，共" . $num . "条记录", $total);
         } else {
             echo createResponse(ERROR_CODE, "没有模板。", null);
