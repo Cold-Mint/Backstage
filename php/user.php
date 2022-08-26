@@ -15,6 +15,7 @@ if (empty($_REQUEST['action'])) {
     return;
 }
 
+
 switch ($_REQUEST['action']) {
     case "register":
         if (empty($_POST['account'])) {
@@ -77,17 +78,6 @@ switch ($_REQUEST['action']) {
             $isEmail = true;
         }
         enableAccount($_POST['account'], $_POST['key'], $isEmail);
-        break;
-    case "changePassword":
-        if (empty($_POST['token'])) {
-            echo nullValuePrompt("account");
-            return;
-        }
-        if (empty($_POST['passWord'])) {
-            echo nullValuePrompt("passWord");
-            return;
-        }
-        modifyTheRecord($_POST['token'], "passWord", $_POST['passWord']);
         break;
     case "changeAppId":
         if (empty($_POST['account'])) {
@@ -237,8 +227,139 @@ switch ($_REQUEST['action']) {
         }
         getIcon($_POST['account']);
         break;
+    case "requestChangePassword":
+        //请求修改密码
+
+        if (empty($_POST['account'])) {
+            echo nullValuePrompt("account");
+            return;
+        }
+        $isEmail = false;
+        if (!empty($_POST['isEmail']) && $_POST['isEmail'] == "true") {
+            $isEmail = true;
+        }
+        requestChangePassword($_POST['account'], $isEmail);
+        break;
+    case "changePassword":
+        //修改密码
+        if (empty($_POST['account'])) {
+            echo nullValuePrompt("account");
+            return;
+        }
+        $isEmail = false;
+        if (!empty($_POST['isEmail']) && $_POST['isEmail'] == "true") {
+            $isEmail = true;
+        }
+        if (empty($_POST['code'])) {
+            echo nullValuePrompt("code");
+            return;
+        }
+        if (empty($_POST['newPassword'])) {
+            echo nullValuePrompt("newPassword");
+            return;
+        }
+        ChangePassword($_POST['account'], $isEmail, $_POST['code'], $_POST['newPassword']);
+        break;
 }
 
+
+
+/*修改密码 */
+function ChangePassword($account, $isEmail, $code, $newPassword)
+{
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return;
+    } else {
+        $key = "account";
+        $show = "用户";
+        if ($isEmail) {
+            $key = "email";
+            $show = "邮箱";
+        }
+        $sql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE " . $key . "='" . $account . "'";
+        $result = mysqli_query($con, $sql);
+        if (mysqli_num_rows($result) > 0) {
+            $row = mysqli_fetch_assoc($result);
+            $timeNumber = time();
+            $nowTime = date("Y-m-d H:i:s", $timeNumber);
+            $sqlCode = "SELECT * FROM " . DATABASE_NAME . ".`verification_code` WHERE account='" . $row['account'] . "' AND type='changePassword' AND expirationTime>='" . $nowTime . "' AND enable = 'true'";
+            $resultCode = mysqli_query($con, $sqlCode);
+            if (mysqli_num_rows($resultCode) > 0) {
+                $rowCode = mysqli_fetch_assoc($resultCode);
+                if ($rowCode['code'] == $code) {
+                    $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `password` ='".$newPassword."' WHERE " . $key . " = '" . $account . "'";
+                    mysqli_query($con, $updata);
+                    $sqlCode = "UPDATE " . DATABASE_NAME . ".`verification_code` SET `enable` = 'false' WHERE account='" . $row['account'] . "' AND type='changePassword' AND expirationTime>='" . $nowTime . "' AND enable = 'true'";
+                    mysqli_query($con, $sqlCode);
+                    echo createResponse(SUCCESS_CODE, "修改成功。", null);
+                } else {
+                    echo createResponse(ERROR_CODE, "验证码错误。", null);
+                }
+            } else {
+                echo createResponse(ERROR_CODE, "请先获取验证码。", null);
+            }
+        } else {
+            echo createResponse(ERROR_CODE, "找不到" . $show, null);
+        }
+    }
+    mysqli_close($con);
+}
+
+
+/*请求修改密码 */
+function requestChangePassword($account, $isEmail)
+{
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return;
+    } else {
+        $key = "account";
+        $show = "用户";
+        if ($isEmail) {
+            $key = "email";
+            $show = "邮箱";
+        }
+        $sql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE " . $key . "='" . $account . "'";
+        $result = mysqli_query($con, $sql);
+        $keyCode = createUniqueCode();
+        if (mysqli_num_rows($result) > 0) {
+            $row = mysqli_fetch_assoc($result);
+            $timeNumber = time();
+            $nowTime = date("Y-m-d H:i:s", $timeNumber);
+            $sqlCode = "SELECT * FROM " . DATABASE_NAME . ".`verification_code` WHERE account='" . $row['account'] . "' AND type='changePassword' AND expirationTime>='" . $nowTime . "' AND enable = 'true'";
+            $resultCode = mysqli_query($con, $sqlCode);
+            if (mysqli_num_rows($resultCode) > 0) {
+                $rowCode = mysqli_fetch_assoc($resultCode);
+                echo createResponse(SUCCESS_CODE, "请在 " . $rowCode['expirationTime'] . " 后，获取新的验证码。", null);
+            } else {
+                //10分钟有效
+                $endTime = date("Y-m-d H:i:s", strtotime("+10 minute", $timeNumber));
+                send($row['email'], "您正在申请修改密码", "<p>" . $row['userName'] . "，您好！</p>
+            <p>您的账户" . $row['account'] . "，修改密码，所需的令牌验证码为：</p>
+            <h1><font color=\"#FF0000\">" . $keyCode . "</font></h1>
+            <p>此验证码在" . $endTime . "前有效。</p>
+            <p>令牌验证码是完成登录所必需的。没有人能够不访问这封电子邮件就访问您的帐户。</p>
+            <hr>
+            <p>此通知已发送至与您的 铁锈助手 帐户关联的电子邮件地址。</p>
+            <p>这封电子邮件由系统自动生成，请勿回复。如果您需要额外帮助，请加入 <a href=\"https://jq.qq.com/?_wv=1027&k=fg3CUxiI\">铁锈助手官方群</a>。</p>
+            <p>祝您生活愉快！</p>
+            <p>-ColdMint</p>", false);
+                //创建验证码
+                $sqlCode = "INSERT INTO " . DATABASE_NAME . ".`verification_code`(`account`, `code`, `createTime`, `expirationTime`, `type`, `enable`) VALUES ('" . $row['account'] . "', '" . $keyCode . "', '" . $nowTime . "', '" . $endTime . "', 'changePassword', 'true')";
+                mysqli_query($con, $sqlCode);
+                echo createResponse(SUCCESS_CODE, "已发送邮件。", null);
+            }
+        } else {
+            echo createResponse(ERROR_CODE, "找不到" . $show, null);
+        }
+    }
+    mysqli_close($con);
+}
 
 /*清理未激活的用户 */
 function cleanInactiveUser()
@@ -408,7 +529,8 @@ function getIcon($account)
 /*
 更新ip（私有方法）
  */
-function updateIp($account){
+function updateIp($account)
+{
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
     $ip = getIp();
@@ -542,10 +664,9 @@ function getSpaceInfo($account)
         $end = null;
         if ($row != null && $row2 != null) {
             $end = array_merge($row, $row2);
-            if($row3['country'] == "中国")
-            {
+            if ($row3['country'] == "中国") {
                 $end['location'] = $row3['province'];
-            }else{
+            } else {
                 $end['location'] = $row3['country'];
             }
             unset($end['ip']);
@@ -672,12 +793,14 @@ function register($account, $userName, $passWord, $email, $appID)
         $sql = "INSERT INTO " . DATABASE_NAME . ".`user`(`account`, `password`, `token`, `userName`, `email`,`appID`, `enable`, `creationTime`, `loginTime`, `expirationTime`,`ip`) VALUES ('" . $account . "', '" . $passWord . "', '" . uuid() . "','" . $userName . "', '" . $email . "', '" . $appID . "', '" . $key . "', '" . $createTime . "', '" . $createTime . "', '" . $expirationTime . "','" . getIp() . "')";
         $sqlcommunity = "INSERT INTO " . DATABASE_NAME . ".`community`(`account`) VALUES ('" . $account . "')";
         $sqlLock2 = "INSERT INTO  " . DATABASE_NAME . ".`coupons`(`name`, `describe` , `type`, `value`, `target`, `num`, `createTime`,`expirationTime`) VALUES ('萌新折扣券', '萌新购买铁锈助手减免" . ((1 - DISCOUNT_VALUE) * 100) . "%', 'personal', '" . DISCOUNT_VALUE . "', '" . $account . "', 1, '" . $createTime . "','" . $expirationTime . "')";
+        $sqlCode = "INSERT INTO " . DATABASE_NAME . ".`verification_code`(`account`, `code`, `createTime`, `expirationTime`, `type`, `enable`) VALUES ('" . $account . "', '" . $key . "', '" . $createTime . "', 'forever', 'register', 'true')";
+        mysqli_query($con, $sqlCode);
         mysqli_query($con, $sqlLock2);
         mysqli_query($con, $sqlcommunity);
         if (mysqli_query($con, $sql)) {
             updateIp($account);
             echo createResponse(SUCCESS_CODE, "注册成功。", null);
-            /*send($email, "请激活您的铁锈助手账号", "<p>" . $userName . "，您好！</p>
+            send($email, "请激活您的铁锈助手账号", "<p>" . $userName . "，您好！</p>
             <p>您登录帐户" . $account . "所需的令牌验证码为：</p>
             <h1><font color=\"#FF0000\">" . $key . "</font></h1>
             <p>令牌验证码是完成登录所必需的。没有人能够不访问这封电子邮件就访问您的帐户。</p>
@@ -685,7 +808,7 @@ function register($account, $userName, $passWord, $email, $appID)
             <p>此通知已发送至与您的 铁锈助手 帐户关联的电子邮件地址。</p>
             <p>这封电子邮件由系统自动生成，请勿回复。如果您需要额外帮助，请加入 <a href=\"https://jq.qq.com/?_wv=1027&k=fg3CUxiI\">铁锈助手官方群</a>。</p>
             <p>祝您生活愉快！</p>
-            <p>-ColdMint</p>", false);*/
+            <p>-ColdMint</p>", false);
         } else {
             echo createResponse(ERROR_CODE, "注册失败。", mysqli_error($con));
             return false;
@@ -715,14 +838,25 @@ function changeAppID($account, $keyCode, $appID, $isEmail)
         if (mysqli_num_rows($result) > 0) {
             $row = mysqli_fetch_assoc($result);
             $enable = $row['enable'];
-            $trueKey = $row['appID'];
+            $timeNumber = time();
+            $nowTime = date("Y-m-d H:i:s", $timeNumber);
             if ($enable == "verification") {
-                if ($trueKey == $keyCode) {
-                    $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `appID` = '" . $appID . "',`enable` ='true' WHERE " . $key . " = '" . $account . "'";
-                    mysqli_query($con, $updata);
-                    echo createResponse(SUCCESS_CODE, "验证成功", null);
+                $sqlCode1 = "SELECT * FROM " . DATABASE_NAME . ".`verification_code` WHERE account='" . $row['account'] . "' AND type='verification' AND expirationTime>='" . $nowTime . "' AND enable = 'true'";
+                $resultSql = mysqli_query($con, $sqlCode1);
+                if (mysqli_num_rows($resultSql) > 0) {
+                    $rowCode = mysqli_fetch_assoc($resultSql);
+                    if ($rowCode['code'] == $keyCode) {
+                        $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `enable` ='true' WHERE " . $key . " = '" . $account . "'";
+                        mysqli_query($con, $updata);
+                        $sqlCode = "UPDATE " . DATABASE_NAME . ".`verification_code` SET `enable` = 'false' WHERE account='" . $row['account'] . "' AND type='verification' AND expirationTime>='" . $nowTime . "' AND enable = 'true'";
+                        mysqli_query($con, $sqlCode);
+
+                        echo createResponse(SUCCESS_CODE, "验证成功", null);
+                    } else {
+                        echo createResponse(ERROR_CODE, "验证码错误", null);
+                    }
                 } else {
-                    echo createResponse(ERROR_CODE, "验证码错误", null);
+                    echo createResponse(ERROR_CODE, "找不到验证码记录。", null);
                 }
             } else {
                 echo createResponse(ERROR_CODE, "您的账号不需要验证。", null);
@@ -734,7 +868,7 @@ function changeAppID($account, $keyCode, $appID, $isEmail)
     mysqli_close($con);
 }
 
-/*验证设备 */
+/*验证设备(发送邮件) */
 function verification($account, $passWord, $appID, $isEmail)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
@@ -758,21 +892,36 @@ function verification($account, $passWord, $appID, $isEmail)
                 $enable = $row['enable'];
                 $oldAppID = $row['appID'];
                 if ($appID != $oldAppID || $enable == "verification") {
-                    $keyCode = createUniqueCode();
-                    send($row['email'], "请验证您的设备", "<p>" . $row['userName'] . "，您好！</p>
-                <p>我们检测到您登录帐户" . $account . "，在未经认证的设备上登录。需要进行安全认证。</p>
-                <p>登录所需的令牌验证码为：</p>
-                <h1><font color=\"#FF0000\">" . $keyCode . "</font></h1>
-                <p>令牌验证码是完成登录所必需的。没有人能够不访问这封电子邮件就访问您的帐户。</p>
-                <hr>
-                <p>此通知已发送至与您的 铁锈助手 帐户关联的电子邮件地址。</p>
-                <p>这封电子邮件由系统自动生成，请勿回复。如果您需要额外帮助，请加入 <a href=\"https://jq.qq.com/?_wv=1027&k=fg3CUxiI\">铁锈助手官方群</a>。</p>
-                <p>祝您生活愉快！</p>
-                <p>-ColdMint</p>", false);
-                    $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `appID` = '" . $keyCode . "',`enable` ='verification' WHERE " . $key . " = '" . $account . "'";
-                    mysqli_query($con, $updata);
-                    echo createResponse(SUCCESS_CODE, "已发送验证邮件", null);
-                    return;
+                    //是否有验证码没过期
+                    $timeNumber = time();
+                    $nowTime = date("Y-m-d H:i:s", $timeNumber);
+                    $sqlCode = "SELECT * FROM " . DATABASE_NAME . ".`verification_code` WHERE account='" . $row['account'] . "' AND type='verification' AND expirationTime>='" . $nowTime . "' AND enable = 'true'";
+                    $resultCode = mysqli_query($con, $sqlCode);
+                    if (mysqli_num_rows($resultCode) > 0) {
+                        $rowCode = mysqli_fetch_assoc($resultCode);
+                        echo createResponse(SUCCESS_CODE, "请在 " . $rowCode['expirationTime'] . " 后，获取新的验证码。", null);
+                    } else {
+                        $keyCode = createUniqueCode();
+                        //10分钟有效
+                        $endTime = date("Y-m-d H:i:s", strtotime("+10 minute", $timeNumber));
+                        send($row['email'], "请验证您的设备", "<p>" . $row['userName'] . "，您好！</p>
+                    <p>我们检测到您登录帐户" . $account . "，在未经认证的设备上登录。需要进行安全认证。</p>
+                    <p>登录所需的令牌验证码为：</p>
+                    <h1><font color=\"#FF0000\">" . $keyCode . "</font></h1>
+                    <p>此验证码在 " . $endTime . " 前有效。</p>
+                    <p>令牌验证码是完成登录所必需的。没有人能够不访问这封电子邮件就访问您的帐户。</p>
+                    <hr>
+                    <p>此通知已发送至与您的 铁锈助手 帐户关联的电子邮件地址。</p>
+                    <p>这封电子邮件由系统自动生成，请勿回复。如果您需要额外帮助，请加入 <a href=\"https://jq.qq.com/?_wv=1027&k=fg3CUxiI\">铁锈助手官方群</a>。</p>
+                    <p>祝您生活愉快！</p>
+                    <p>-ColdMint</p>", false);
+                        $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `enable` ='verification' WHERE " . $key . " = '" . $account . "'";
+                        $in = "INSERT INTO " . DATABASE_NAME . ".`verification_code`(`account`, `code`, `createTime`, `expirationTime`, `type`, `enable`) VALUES ('" . $row['account'] . "', '" . $keyCode . "', '" . $nowTime . "', '" . $endTime . "', 'verification', 'true')";
+                        mysqli_query($con, $in);
+                        mysqli_query($con, $updata);
+                        echo createResponse(SUCCESS_CODE, "已发送验证邮件", null);
+                        return;
+                    }
                 } else {
                     echo createResponse(ERROR_CODE, "此账户，无需验证", null);
                 }
@@ -851,6 +1000,7 @@ function login($account, $passWord, $appID, $isEmail)
             $row['activation'] = $activation;
             $oldAppID = $row['appID'];
             if ($appID != $oldAppID || $enable == "verification") {
+
                 echo createResponse(ERROR_CODE, "请更改登录设备", null);
                 return;
             } else {
@@ -907,6 +1057,8 @@ function enableAccount($account, $uuid, $isEmail)
         $result = mysqli_query($con, $sql);
         if (mysqli_num_rows($result) > 0) {
             $sql2 = "UPDATE " . DATABASE_NAME . ".`user` SET `enable` = 'true' WHERE `enable` = '" . $uuid . "' AND  " . $key . "='" . $account . "'";
+            $sql3 = "UPDATE " . DATABASE_NAME . ".`verification_code` SET `enable` = 'false' WHERE `type` = 'register' AND  " . $key . "='" . $account . "'";
+            mysqli_query($con, $sql3);
             if (mysqli_query($con, $sql2)) {
                 echo createResponse(SUCCESS_CODE, "激活成功。", null);
             } else {

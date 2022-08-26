@@ -1,5 +1,5 @@
 <?php
-/*搜索系统 */
+/*搜索系统(没有访问次数限制) */
 require_once "conf.php";
 
 if (empty($_REQUEST['action'])) {

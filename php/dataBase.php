@@ -31,6 +31,7 @@ switch ($_REQUEST['action']) {
         createTemplatePackageTable();
         createTemplateTable();
         createSubscribeRecordTable();
+        createVerificationCode();
         echo "</table>";
         break;
     default:
@@ -108,6 +109,35 @@ function createDataBase()
     return true;
 }
 
+//创建验证码表
+function createVerificationCode(){
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return false;
+    } else {
+        $sql = "CREATE TABLE `verification_code` (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `account` varchar(20) DEFAULT NULL,
+            `code` varchar(20) DEFAULT NULL,
+            `createTime` varchar(20) DEFAULT NULL,
+            `expirationTime` varchar(20) DEFAULT NULL,
+            `type` varchar(20) DEFAULT NULL,
+            `enable` varchar(10) DEFAULT NULL,
+            PRIMARY KEY (`id`)
+          ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4;";
+        if (mysqli_query($con, $sql)) {
+            echo "<tr><td>验证码记录表</td><td>存放服务器发送的验证码信息。</td><td>成功</td></tr>";
+        } else {
+            echo "<tr><td>验证码记录表</td><td>" . mysqli_error($con) . "</td><td>失败</td></tr>";
+            return false;
+        }
+    }
+    mysqli_close($con);
+    return true;
+}
+
 //创建订阅表
 function createSubscribeRecordTable(){
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
@@ -149,7 +179,7 @@ function createTemplatePackageTable(){
             `developer` varchar(20) DEFAULT NULL,
             `versionName` varchar(20) DEFAULT NULL,
             `versionNumber` int(11) DEFAULT NULL,
-            `appVersionName` varchar(20) DEFAULT NULL,
+            `appVersionName` varchar(50) DEFAULT NULL,
             `appVersionNumber` int(11) DEFAULT NULL,
             `public` varchar(20) DEFAULT 'true',
             `createTime` varchar(20) DEFAULT NULL,
@@ -210,7 +240,7 @@ function createErrorRecordTable(){
             `id` int(11) NOT NULL AUTO_INCREMENT,
             `message` text DEFAULT NULL,
             `time` varchar(20) DEFAULT NULL,
-            `versionName` varchar(20) DEFAULT NULL,
+            `versionName` varchar(50) DEFAULT NULL,
             `versionNumber` int(11) DEFAULT NULL,
             PRIMARY KEY (`id`)
           ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;";
