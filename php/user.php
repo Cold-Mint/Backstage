@@ -3,6 +3,7 @@
 require_once "conf.php";
 require_once "email.php";
 
+
 if (!canUseIp()) {
     return;
 }
@@ -264,6 +265,7 @@ switch ($_REQUEST['action']) {
 
 
 
+
 /*修改密码 */
 function ChangePassword($account, $isEmail, $code, $newPassword)
 {
@@ -290,7 +292,7 @@ function ChangePassword($account, $isEmail, $code, $newPassword)
             if (mysqli_num_rows($resultCode) > 0) {
                 $rowCode = mysqli_fetch_assoc($resultCode);
                 if ($rowCode['code'] == $code) {
-                    $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `password` ='".$newPassword."' WHERE " . $key . " = '" . $account . "'";
+                    $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `password` ='" . $newPassword . "' WHERE " . $key . " = '" . $account . "'";
                     mysqli_query($con, $updata);
                     $sqlCode = "UPDATE " . DATABASE_NAME . ".`verification_code` SET `enable` = 'false' WHERE account='" . $row['account'] . "' AND type='changePassword' AND expirationTime>='" . $nowTime . "' AND enable = 'true'";
                     mysqli_query($con, $sqlCode);
@@ -527,6 +529,37 @@ function getIcon($account)
 }
 
 /*
+ *添加硬币如果需要的话 
+ */
+function addCoinIfNeed($account)
+{
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    $sqlUser = "SELECT coinNumber FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
+    $userResult = mysqli_query($con, $sqlUser);
+    if (mysqli_num_rows($userResult) > 0) {
+        $userRow = mysqli_fetch_assoc($userResult);
+        //如果有用户，获取大于等于今天的记录
+        $currenttime = date("Y-m-d");
+        $sql = "SELECT * FROM " . DATABASE_NAME . ".`coin_record` WHERE account='" . $account . "' AND time>='" . $currenttime . "'";
+        $result = mysqli_query($con, $sql);
+        if (mysqli_num_rows($result) == 0) {
+            $newCoinNumber = $userRow['coinNumber'];
+            $newCoinNumber++;
+            $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `coinNumber` = " . $newCoinNumber . " WHERE `account` = '" . $account . "'";
+            mysqli_query($con, $updata);
+            //如果没有记录，那么添加
+            $number = 1;
+            $nowTime = time();
+            $createTime = date("Y-m-d H:i:s", $nowTime);
+            $addSql = "INSERT INTO " . DATABASE_NAME . ".`coin_record`(`account`, `eventName`,`target`, `number`, `time`) VALUES ('" . $account . "', 'sign_in', 'self','" . $number . "', '" . $createTime . "')";
+            mysqli_query($con, $addSql);
+        }
+    }
+    mysqli_close($con);
+}
+
+/*
 更新ip（私有方法）
  */
 function updateIp($account)
@@ -550,7 +583,7 @@ function getUserActivationInfo($token)
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
-        $sql = "SELECT account,userName,headIcon,permission,email,enable,expirationTime,banTime FROM " . DATABASE_NAME . ".`user` WHERE token='" . $token . "'";
+        $sql = "SELECT account,userName,headIcon,permission,email,enable,expirationTime,banTime,coinNumber FROM " . DATABASE_NAME . ".`user` WHERE token='" . $token . "'";
         $result = mysqli_query($con, $sql);
         if (mysqli_num_rows($result) > 0) {
             $row = mysqli_fetch_assoc($result);
@@ -580,6 +613,7 @@ function getUserActivationInfo($token)
                 }
             }
             updateIp($account);
+            addCoinIfNeed($account);
             echo createResponse(SUCCESS_CODE, "获取成功。", $row);
         } else {
             echo createResponse(ERROR_CODE, "登录状态已过期。", null);
@@ -846,12 +880,13 @@ function changeAppID($account, $keyCode, $appID, $isEmail)
                 if (mysqli_num_rows($resultSql) > 0) {
                     $rowCode = mysqli_fetch_assoc($resultSql);
                     if ($rowCode['code'] == $keyCode) {
-                        $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `enable` ='true' WHERE " . $key . " = '" . $account . "'";
+                        //加上appid
+                        $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `enable` ='true',`appID`='" . $appID . "' WHERE " . $key . " = '" . $account . "'";
                         mysqli_query($con, $updata);
                         $sqlCode = "UPDATE " . DATABASE_NAME . ".`verification_code` SET `enable` = 'false' WHERE account='" . $row['account'] . "' AND type='verification' AND expirationTime>='" . $nowTime . "' AND enable = 'true'";
                         mysqli_query($con, $sqlCode);
 
-                        echo createResponse(SUCCESS_CODE, "验证成功", null);
+                        echo createResponse(SUCCESS_CODE, "验证成功" . $updata, null);
                     } else {
                         echo createResponse(ERROR_CODE, "验证码错误", null);
                     }
@@ -1018,6 +1053,7 @@ function login($account, $passWord, $appID, $isEmail)
                     "account" => $row['account']
                 );
                 updateIp($account);
+                addCoinIfNeed($account);
                 echo createResponse(SUCCESS_CODE, "登录成功", $arr);
             }
         } else {

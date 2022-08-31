@@ -185,7 +185,16 @@ function send($token, $context)
         if (mysqli_num_rows($result) > 0) {
             $nowTime = time();
             $createTime = date("Y-m-d H:i:s", $nowTime);
-            $sql2 = "INSERT INTO " . DATABASE_NAME . ".`dynamic` (account,content,time) VALUES ('" . $row['account'] . "','" . $context . "','" . $createTime . "')";
+            $sql3 = "SELECT * FROM " . DATABASE_NAME . ".`ip_record` WHERE ip='" . getIp() . "'";
+            $result3 = mysqli_query($con, $sql3);
+            $row3 = mysqli_fetch_assoc($result3);
+            $location = null;
+            if ($row3['country'] == "中国") {
+                $location = $row3['province'];
+            } else {
+                $location = $row3['country'];
+            }
+            $sql2 = "INSERT INTO " . DATABASE_NAME . ".`dynamic` (account,content,time,location) VALUES ('" . $row['account'] . "','" . $context . "','" . $createTime . "','" . $location . "')";
             if (mysqli_query($con, $sql2)) {
                 echo createResponse(SUCCESS_CODE, "发布成功", null);
             } else {

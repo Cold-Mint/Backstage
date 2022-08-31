@@ -32,6 +32,7 @@ switch ($_REQUEST['action']) {
         createTemplateTable();
         createSubscribeRecordTable();
         createVerificationCode();
+        createCoinRecordTable();
         echo "</table>";
         break;
     default:
@@ -61,7 +62,34 @@ function initPlan()
     }
 }
 
-
+/**
+ * 创建投币记录表
+ */
+function createCoinRecordTable()
+{
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return;
+    } else {
+        $sql = "CREATE TABLE `coin_record` (
+            `id` int(255) NOT NULL AUTO_INCREMENT,
+            `account` varchar(20) DEFAULT NULL,
+            `eventName` varchar(255) DEFAULT NULL,
+            `target` varchar(255) DEFAULT NULL,
+            `number` int(255) DEFAULT NULL,
+            `time` varchar(20) DEFAULT NULL,
+            PRIMARY KEY (`id`)
+          ) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8mb4;";
+        if (mysqli_query($con, $sql)) {
+            echo "<tr><td>投币记录表</td><td>存放投币记录信息。</td><td>成功</td></tr>";
+        } else {
+            echo "<tr><td>投币记录表</td><td>" . mysqli_error($con) . "</td><td>失败</td></tr>";
+        }
+    }
+    mysqli_close($con);
+}
 
 
 /**
@@ -452,6 +480,7 @@ function createUserTable()
             `expirationTime` varchar(20) DEFAULT NULL,
             `banTime` varchar(20) DEFAULT NULL,
             `ip` varchar(255) DEFAULT NULL,
+            `coinNumber` int(20) DEFAULT 0,
             PRIMARY KEY (`account`) USING BTREE,
             UNIQUE KEY `email` (`email`),
             UNIQUE KEY `userName` (`userName`)
@@ -510,8 +539,9 @@ function createDynamicTable()
             `content` varchar(255) DEFAULT NULL,
             `visible` varchar(30) DEFAULT 'true',
             `time` varchar(255) DEFAULT NULL,
+            `location` varchar(255) DEFAULT NULL,
             PRIMARY KEY (`id`)
-          ) ENGINE=InnoDB AUTO_INCREMENT=23 DEFAULT CHARSET=utf8mb4;";
+          ) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4;";
         if (mysqli_query($con, $sql)) {
             echo "<tr><td>动态表</td><td>存放用户动态。</td><td>成功</td></tr>";
         } else {
@@ -579,6 +609,7 @@ function createModTable()
             `creationTime` varchar(20) DEFAULT NULL,
             `unitNumber` int(11) DEFAULT 0,
             `hidden` tinyint(1) DEFAULT 1,
+            `coinNumber` int(11) DEFAULT 0,
             PRIMARY KEY (`id`),
             UNIQUE KEY `name` (`name`) USING BTREE
           ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
@@ -632,13 +663,14 @@ function createModComments()
         return;
     } else {
         $sql = "CREATE TABLE `mod_comments` (
-            `id` INT ( 10 ) UNSIGNED NOT NULL AUTO_INCREMENT,
-            `modId` VARCHAR ( 30 ) DEFAULT NULL,
-            `account` VARCHAR ( 20 ) DEFAULT NULL,
-            `content` VARCHAR ( 255 ) DEFAULT NULL,
-            `time` VARCHAR ( 30 ) DEFAULT NULL,
-        PRIMARY KEY ( `id` ) USING BTREE 
-        ) ENGINE = INNODB AUTO_INCREMENT = 3 DEFAULT CHARSET = utf8mb4;";
+            `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+            `modId` varchar(30) DEFAULT NULL,
+            `account` varchar(20) DEFAULT NULL,
+            `content` varchar(255) DEFAULT NULL,
+            `time` varchar(30) DEFAULT NULL,
+            `location` varchar(50) DEFAULT NULL,
+            PRIMARY KEY (`id`) USING BTREE
+          ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;";
         if (mysqli_query($con, $sql)) {
             echo "<tr><td>模组评论表</td><td>存放模组评论信息。</td><td>成功</td></tr>";
         } else {

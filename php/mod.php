@@ -317,8 +317,183 @@ limit 可选参数
         }
         getUpdateRecord($_POST['modId']);
         break;
+    case "insertCoins":
+        //投币模组
+        if (empty($_POST['token'])) {
+            echo nullValuePrompt("token");
+            return;
+        }
+        if (empty($_POST['modId'])) {
+            echo nullValuePrompt("modId");
+            return;
+        }
+        if (empty($_POST['number'])) {
+            echo nullValuePrompt("number");
+            return;
+        }
+        insertCoins($_POST['token'], $_POST['modId'], $_POST['number']);
+        break;
+    case "getInsertCoinHistory":
+        //获取投币历史
+        if (empty($_POST['modId'])) {
+            echo nullValuePrompt("modId");
+            return;
+        }
+        getInsertCoinHistory($_POST['modId']);
+        break;
+    case "getCoinStatus":
+        //获取投币状态
+        if (empty($_POST['token'])) {
+            echo nullValuePrompt("token");
+            return;
+        }
+        if (empty($_POST['modId'])) {
+            echo nullValuePrompt("modId");
+            return;
+        }
+        getCoinStatus($_POST['token'], $_POST['modId']);
+        break;
 }
 
+function getCoinStatus($token, $modId)
+{
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return;
+    } else {
+        $userSql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE token='" . $token . "'";
+        $userResult = mysqli_query($con, $userSql);
+        if (mysqli_num_rows($userResult) > 0) {
+            $modSql = "SELECT * FROM " . DATABASE_NAME . ".`mod` WHERE id='" . $modId . "'";
+            $modResult = mysqli_query($con, $modSql);
+            if (mysqli_num_rows($modResult) > 0) {
+                $modRow = mysqli_fetch_assoc($modResult);
+                $developer = $modRow['developer'];
+                $userRow = mysqli_fetch_assoc($userResult);
+                $account = $userRow['account'];
+                if ($developer == $account) {
+                    echo createResponse(SUCCESS_CODE, "不能为自己的模组投币。", true);
+                    return;
+                }
+                $oldSql = "SELECT * FROM " . DATABASE_NAME . ".`coin_record` WHERE account='" . $account . "' AND eventName='mod_expend' AND target='" . $modId . "'";
+                $oldResult = mysqli_query($con, $oldSql);
+                if (mysqli_num_rows($oldResult) > 0) {
+                    echo createResponse(SUCCESS_CODE, "已投币。", true);
+                } else {
+                    echo createResponse(SUCCESS_CODE, "未投币。", false);
+                }
+            } else {
+                echo createResponse(ERROR_CODE, "找不到模组。", null);
+            }
+        } else {
+            echo createResponse(ERROR_CODE, "令牌验证失败。", null);
+        }
+    }
+    mysqli_close($con);
+}
+
+//获取投币历史
+function getInsertCoinHistory($modId)
+{
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return;
+    } else {
+        $oldSql = "SELECT account,number,time FROM " . DATABASE_NAME . ".`coin_record` WHERE eventName='mod_expend' AND target='" . $modId . "'";
+        $oldResult = mysqli_query($con, $oldSql);
+        if (mysqli_num_rows($oldResult) > 0) {
+            $total = array();
+            $num = 0;
+            while ($row = mysqli_fetch_assoc($oldResult)) {
+                $userSql = "SELECT userName,headIcon FROM " . DATABASE_NAME . ".`user`  WHERE account='" . $row['account'] . "'";
+                $userResult = mysqli_query($con, $userSql);
+                $userRow = mysqli_fetch_assoc($userResult);
+                $total[$num] = array_merge($row, $userRow);
+                $num++;
+            }
+            echo createResponse(SUCCESS_CODE, "获取成功，共" . $num . "条记录", $total);
+        } else {
+            echo createResponse(ERROR_CODE, "没有历史记录。", null);
+        }
+    }
+    mysqli_close($con);
+}
+
+//投币模组
+function insertCoins($token, $modId, $number)
+{
+    if ($number != 1 && $number != 2) {
+        echo createResponse(ERROR_CODE, "您只能投1或2个硬币。", null);
+        return;
+    }
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return;
+    } else {
+        $userSql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE token='" . $token . "'";
+        $userResult = mysqli_query($con, $userSql);
+        if (mysqli_num_rows($userResult) > 0) {
+            $modSql = "SELECT * FROM " . DATABASE_NAME . ".`mod` WHERE id='" . $modId . "'";
+            $modResult = mysqli_query($con, $modSql);
+            if (mysqli_num_rows($modResult) > 0) {
+                $modRow = mysqli_fetch_assoc($modResult);
+                $modCoinNumber = $modRow['coinNumber'];
+                $userRow = mysqli_fetch_assoc($userResult);
+                $account = $userRow['account'];
+                $developer = $modRow['developer'];
+                $oldSql = "SELECT * FROM " . DATABASE_NAME . ".`coin_record` WHERE account='" . $account . "' AND eventName='mod_expend' AND target='" . $modId . "'";
+                $oldResult = mysqli_query($con, $oldSql);
+                if (mysqli_num_rows($oldResult) > 0) {
+                    echo createResponse(ERROR_CODE, "您不能重复投币。", null);
+                    return;
+                }
+                if ($account == $developer) {
+                    echo createResponse(ERROR_CODE, "您不能给自己的作品投币。", null);
+                    return;
+                }
+                $coinNumber = $userRow['coinNumber'];
+                if ($coinNumber >= $number) {
+                    $developerSql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE account='" . $developer . "'";
+                    $developerResult = mysqli_query($con, $developerSql);
+                    if (mysqli_num_rows($developerResult) > 0) {
+                        $developerRow = mysqli_fetch_assoc($developerResult);
+                        $newDerveloperNumber = $developerRow['coinNumber'] + $number;
+                        $developerUpdata = "UPDATE " . DATABASE_NAME . ".`user` SET `coinNumber` = " . $newDerveloperNumber . " WHERE `account` = '" . $developer . "'";
+                        mysqli_query($con, $developerUpdata);
+                        $newCoinNumber = $coinNumber - $number;
+                        $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `coinNumber` = " . $newCoinNumber . " WHERE `account` = '" . $account . "'";
+                        mysqli_query($con, $updata);
+                        $modCoinNumber += $number;
+                        $updataMod = "UPDATE " . DATABASE_NAME . ".`mod` SET `coinNumber` = " . $modCoinNumber . " WHERE `id` = '" . $modId . "'";
+                        mysqli_query($con, $updataMod);
+                        $nowTime = time();
+                        $createTime = date("Y-m-d H:i:s", $nowTime);
+                        $addSql = "INSERT INTO " . DATABASE_NAME . ".`coin_record`(`account`, `eventName`,`target`, `number`, `time`) VALUES ('" . $account . "', 'mod_expend', '" . $modId . "','" . $number . "', '" . $createTime . "')";
+                        mysqli_query($con, $addSql);
+                        $addSql2 = "INSERT INTO " . DATABASE_NAME . ".`coin_record`(`account`, `eventName`,`target`, `number`, `time`) VALUES ('" . $developer . "', 'mod_income', '" . $modId . "','" . $number . "', '" . $createTime . "')";
+                        mysqli_query($con, $addSql2);
+                        echo createResponse(SUCCESS_CODE, "投币成功。", null);
+                    } else {
+                        echo createResponse(ERROR_CODE, "找不到开发者。", null);
+                    }
+                } else {
+                    echo createResponse(ERROR_CODE, "您有" . $coinNumber . "个硬币，无法支付" . $number . "个硬币。", null);
+                }
+            } else {
+                echo createResponse(ERROR_CODE, "找不到模组。", null);
+            }
+        } else {
+            echo createResponse(ERROR_CODE, "令牌验证失败。", null);
+        }
+    }
+    mysqli_close($con);
+}
 
 
 /*随机推荐*/
@@ -424,7 +599,7 @@ function commentsList($modId)
     } else {
         $total = array();
         $num = 0;
-        $sqlMod = "SELECT content,time,account,id FROM " . DATABASE_NAME . ".`mod_comments` WHERE `modId`='" . $modId . "' ORDER BY id DESC";
+        $sqlMod = "SELECT content,time,account,id,location FROM " . DATABASE_NAME . ".`mod_comments` WHERE `modId`='" . $modId . "' ORDER BY id DESC";
         $result = mysqli_query($con, $sqlMod);
         if ($result != false && mysqli_num_rows($result) > 0) {
             while ($row = mysqli_fetch_assoc($result)) {
@@ -498,7 +673,7 @@ function sendComments($token, $modId, $content)
                 $developerResult = mysqli_query($con, $developerUser);
                 if (mysqli_num_rows($developerResult) > 0) {
                     $developerRow = mysqli_fetch_assoc($developerResult);
-                   $createTime = date("Y-m-d H:i:s", time());
+                    $createTime = date("Y-m-d H:i:s", time());
                     /*send($developerRow['email'], $userRow['userName'] . "评论了您的模组", "<p>" . $developerRow['userName'] . "，您好！</p>
             <p>" . $userRow['userName'] . "(" . $userRow['account'] . ") 评论了您的模组 " . $modRow['name'] . "(" . $modId . ")</p>
             <p>评论内容:</p>
@@ -510,7 +685,16 @@ function sendComments($token, $modId, $content)
             <p>这封电子邮件由系统自动生成，请勿回复。如果您需要额外帮助，请加入 <a href=\"https://jq.qq.com/?_wv=1027&k=fg3CUxiI\">铁锈助手官方群</a>。</p>
             <p>祝您生活愉快！</p>
             <p>-ColdMint</p>", false);*/
-                    $addSql = "INSERT INTO " . DATABASE_NAME . ".`mod_comments`(`modId`, `account`, `content`, `time`) VALUES ('" . $modId . "', '" . $account . "', '" . $content . "', '" . $createTime . "')";
+                    $sql3 = "SELECT * FROM " . DATABASE_NAME . ".`ip_record` WHERE ip='" . getIp() . "'";
+                    $result3 = mysqli_query($con, $sql3);
+                    $row3 = mysqli_fetch_assoc($result3);
+                    $location = null;
+                    if ($row3['country'] == "中国") {
+                        $location = $row3['province'];
+                    } else {
+                        $location = $row3['country'];
+                    }
+                    $addSql = "INSERT INTO " . DATABASE_NAME . ".`mod_comments`(`modId`, `account`, `content`, `time`,`location`) VALUES ('" . $modId . "', '" . $account . "', '" . $content . "', '" . $createTime . "','" . $location . "')";
                     if (mysqli_query($con, $addSql)) {
 
                         echo createResponse(SUCCESS_CODE, "发布成功。", null);
