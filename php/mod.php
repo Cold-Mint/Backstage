@@ -285,7 +285,7 @@ limit 可选参数
         soldOutMod($_POST['account'], $_POST['modId']);
         break;
     case "afreshAuditMod":
-        if (empty($_POST['account'])) {
+        if (empty($_POST['token'])) {
             echo nullValuePrompt("account");
             return;
         }
@@ -293,7 +293,7 @@ limit 可选参数
             echo nullValuePrompt("modId");
             return;
         }
-        afreshAuditMod($_POST['account'], $_POST['modId']);
+        afreshAuditMod($_POST['token'], $_POST['modId']);
         break;
     case "soleRecommended":
         if (empty($_POST['account'])) {
@@ -426,8 +426,8 @@ function getInsertCoinHistory($modId)
 //投币模组
 function insertCoins($token, $modId, $number)
 {
-    if ($number != 1 && $number != 2) {
-        echo createResponse(ERROR_CODE, "您只能投1或2个硬币。", null);
+    if ($number <= 0 || $number > 5) {
+        echo createResponse(ERROR_CODE, "您只能投1至5个硬币。", null);
         return;
     }
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);

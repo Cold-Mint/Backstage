@@ -156,6 +156,8 @@ function getList($sortMode, $limit)
 /*添加下载量 */
 function addDownloadNum($modId)
 {
+    echo createResponse(ERROR_CODE, "新版本助手禁止第三方添加下载量。", null);
+    return;
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
     if (!$con) {

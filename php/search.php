@@ -107,7 +107,7 @@ function suggestions($key)
             mysqli_free_result($result);
         }
 
-        $endArray = array_unique($suggestionsArray);
+        $endArray = array_values(array_unique($suggestionsArray));
         echo createResponse(SUCCESS_CODE, "获取成功，共" . count($endArray) . "条记录", $endArray);
     }
 }
