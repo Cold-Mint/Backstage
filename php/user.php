@@ -461,7 +461,7 @@ function updateSpaceInfo($token, $userName, $introduce, $gender, $icon, $cover)
 
             $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `userName` = '" . $userName . "' WHERE `token` = '" . $token . "'";
             mysqli_query($con, $updata);
-            $updata = "UPDATE " . DATABASE_NAME . ".`community` SET `introduce` = '" . $introduce . "' WHERE `token` = '" . $token . "'";
+            $updata = "UPDATE " . DATABASE_NAME . ".`community` SET `introduce` = '" . $introduce . "' WHERE `account` = '" . $account . "'";
             mysqli_query($con, $updata);
             $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `gender` = '" . $gender . "' WHERE `token` = '" . $token . "'";
             mysqli_query($con, $updata);
