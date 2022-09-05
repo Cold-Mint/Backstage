@@ -40,7 +40,10 @@ function hotSearch()
         $suggestionsArray = array();
         $num = 0;
         //根据搜索记录建议
-        $sqlMod = "SELECT keyword,number FROM " . DATABASE_NAME . ".`search_record` WHERE `keyword` IS NOT NULL ORDER BY number  DESC LIMIT 10";
+        $timeNumber = time();
+        //$nowTime = date("Y-m-d H:i:s", $timeNumber);
+        $endTime = date("Y-m-d H:i:s", strtotime("-7 day", $timeNumber));
+        $sqlMod = "SELECT keyword,number FROM " . DATABASE_NAME . ".`search_record` WHERE `keyword` IS NOT NULL AND `latestTime` >= '" . $endTime . "' ORDER BY number  DESC LIMIT 10";
         $result = mysqli_query($con, $sqlMod);
         if ($result && mysqli_num_rows($result) > 0) {
             while ($row = mysqli_fetch_assoc($result)) {
@@ -50,7 +53,6 @@ function hotSearch()
             mysqli_free_result($result);
         }
         echo createResponse(SUCCESS_CODE, "获取成功，共" . $num . "条记录", $suggestionsArray);
-
     }
 }
 
