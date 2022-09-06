@@ -612,6 +612,9 @@ function getUserActivationInfo($token)
                     }
                 }
             }
+            $loginTime = date("Y-m-d H:i:s", $nowTime);
+            $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `loginTime` ='".$loginTime."' WHERE token = '" . $token . "'";
+            mysqli_query($con, $updata);
             updateIp($account);
             addCoinIfNeed($account);
             echo createResponse(SUCCESS_CODE, "获取成功。", $row);
@@ -767,7 +770,6 @@ function banUser($account, $appID, $banAccount, $addTime)
             $permission = $row['permission'];
             if ($permission == 1) {
                 $nowTime = time();
-                //$createTime = date("Y-m-d H:i:s", $nowTime);
                 $expirationTime = date("Y-m-d H:i:s", strtotime($addTime, $nowTime));
                 $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `banTime` = '" . $expirationTime . "' WHERE `account` = '" . $account . "'";
                 if (mysqli_query($con, $updata)) {
