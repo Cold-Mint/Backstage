@@ -55,7 +55,7 @@ function send($address, $title, $bodyHtml, $needEcho)
         $mail->Host = 'smtp.qq.com';                // SMTP服务器
         $mail->SMTPAuth = true;                      // 允许 SMTP 认证
         $mail->Username = 'rust_helper@qq.com';                // SMTP 用户名  即邮箱的用户名
-        $mail->Password = 'bbalqmritgszdabh';             // SMTP 密码  部分邮箱是授权码(例如163邮箱)
+        $mail->Password = 'xormajrakrvudaej';             // SMTP 密码  部分邮箱是授权码(例如163邮箱)
         $mail->SMTPSecure = 'ssl';                    // 允许 TLS 或者ssl协议
         $mail->Port = 465;                            // 服务器端口 25 或者465 具体要看邮箱服务器支持
 
