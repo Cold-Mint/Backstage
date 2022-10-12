@@ -157,6 +157,8 @@ switch ($_REQUEST['action']) {
         sortMode 可选参数
         -latestTime 按更新时间倒序
         -downloadNumber 按下载数倒序
+        -coinNumber 按投币数倒序
+        -updateNumber 更新次数
         */
         $sortMode = null;
         if (!empty($_POST['sortMode'])) {
@@ -224,6 +226,7 @@ switch ($_REQUEST['action']) {
         sortMode 可选参数
         -latestTime 按更新时间倒序
         -downloadNumber 按下载数倒序
+        -unitNumber 单位数
         */
         $sortMode = null;
         if (!empty($_POST['sortMode'])) {
@@ -1067,6 +1070,8 @@ function auditMod($token, $modId, $state)
 /*获取模组列表(显示部分信息) */
 function getList($loadHide, $sortMode, $limit)
 {
+    
+
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
     if (!$con) {
@@ -1079,12 +1084,18 @@ function getList($loadHide, $sortMode, $limit)
         if ($loadHide) {
             $hideID = 1;
         }
-        $sqlMod = "SELECT id,name,`describe`,icon,developer,downloadNumber,`updateTime` FROM " . DATABASE_NAME . ".`mod` WHERE `hidden`='" . $hideID . "'";
+        $sqlMod = "SELECT id,name,`describe`,icon,developer,downloadNumber,`updateTime`,coinNumber,unitNumber,versionNumber FROM " . DATABASE_NAME . ".`mod` WHERE `hidden`='" . $hideID . "'";
         if ($sortMode != null) {
             if ($sortMode == "latestTime") {
                 $sqlMod = $sqlMod . " ORDER BY updateTime DESC";
             } else if ($sortMode == "downloadNumber") {
                 $sqlMod = $sqlMod . " ORDER BY downloadNumber DESC";
+            } else if ($sortMode == "coinNumber") {
+                $sqlMod = $sqlMod . " ORDER BY coinNumber DESC";
+            } else if ($sortMode == "unitNumber") {
+                $sqlMod = $sqlMod . " ORDER BY unitNumber DESC";
+            }else if ($sortMode == "updateNumber") {
+                $sqlMod = $sqlMod . " ORDER BY versionNumber DESC";
             }
         }
         if ($limit != null) {
@@ -1191,7 +1202,7 @@ function getTagModList($tags)
     } else {
         $total = array();
         $num = 0;
-        $sqlMod = "SELECT id,name,`describe`,icon,developer,downloadNumber,`updateTime` FROM " . DATABASE_NAME . ".`mod` WHERE `tags` Like '%" . $tags . "%' AND `hidden`=0";
+        $sqlMod = "SELECT id,name,`describe`,icon,developer,downloadNumber,`updateTime`,coinNumber,unitNumber,versionNumber FROM " . DATABASE_NAME . ".`mod` WHERE `tags` Like '%" . $tags . "%' AND `hidden`=0";
         $result = mysqli_query($con, $sqlMod);
         if ($result != false && mysqli_num_rows($result) > 0) {
             while ($row = mysqli_fetch_assoc($result)) {
