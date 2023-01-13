@@ -134,10 +134,7 @@ switch ($_REQUEST['action']) {
         auditMod($_POST['token'], $_POST['modId'], $_POST['state']);
         break;
     case "getInfo":
-        if (empty($_POST['token'])) {
-            echo nullValuePrompt("account");
-            return;
-        }
+        //token可以为空
         if (empty($_POST['modId'])) {
             echo nullValuePrompt("modId");
             return;
@@ -752,6 +749,17 @@ function getInfo($token, $modId)
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
+        if(empty($token)){
+ $sqlMod = "SELECT * FROM " . DATABASE_NAME . ".`mod` WHERE id='" . $modId . "'";
+            $modResult = mysqli_query($con, $sqlMod);
+            if (mysqli_num_rows($modResult) > 0) {
+                $modRow = mysqli_fetch_assoc($modResult);
+                echo createResponse(SUCCESS_CODE, "获取成功。", $modRow);
+            }else {
+                echo createResponse(ERROR_CODE, "找不到id为" . $modId . "的模组。", null);
+            }
+            return;
+        }
         $sqlUser = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE token='" . $token . "'";
         $userResult = mysqli_query($con, $sqlUser);
         if (mysqli_num_rows($userResult) > 0) {
