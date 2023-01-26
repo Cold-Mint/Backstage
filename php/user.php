@@ -586,10 +586,17 @@ function getUserActivationInfo($token)
         $sql = "SELECT account,userName,headIcon,permission,email,enable,expirationTime,banTime,coinNumber FROM " . DATABASE_NAME . ".`user` WHERE token='" . $token . "'";
         $result = mysqli_query($con, $sql);
         if (mysqli_num_rows($result) > 0) {
+          
             $row = mysqli_fetch_assoc($result);
             //是否可用
             $nowTime = time();
-            $rowTime = $row['expirationTime'];
+            $rowTime = null;
+            if(ENABLE_PAYMENT){
+                $rowTime = $row['expirationTime'];
+            }else{
+                $row['expirationTime'] = "forever";
+                $rowTime = $row['expirationTime'];
+            }
             $account = $row['account'];
             $activation = true;
             if ($rowTime != "forever") {
@@ -1013,7 +1020,13 @@ function login($account, $passWord, $appID, $isEmail)
 
             //是否可用
             $nowTime = time();
-            $rowTime = $row['expirationTime'];
+            $rowTime = null;
+            if(ENABLE_PAYMENT){
+                $rowTime = $row['expirationTime'];
+            }else{
+                $row['expirationTime'] = "forever";
+                $rowTime = $row['expirationTime'];
+            }
             $activation = true;
             if ($rowTime != "forever") {
                 $expirationTime = strtotime($rowTime);

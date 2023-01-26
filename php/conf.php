@@ -13,6 +13,8 @@ const EXPERIENCE_TIME = "+7 day";
 const DISCOUNT_TIME = EXPERIENCE_TIME;
 //新人折扣比例
 const DISCOUNT_VALUE = 0.8;
+//启用付费
+const ENABLE_PAYMENT = false;
 
 /**此ip是否可以访问数据 */
 function canUseIp()
