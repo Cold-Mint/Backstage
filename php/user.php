@@ -475,7 +475,11 @@ function updateSpaceInfo($token, $userName, $introduce, $gender, $icon, $cover)
                     mysqli_query($con, $updata);
                 } else {
                     if (!empty($icon)) {
-                        $newIcon = $folder . "/icon.png";
+                        $iconFolder = $folder."/icons/";
+                        if (!file_exists($iconFolder)) {
+                            mkdir($iconFolder, 0777, true);
+                        }
+                        $newIcon = $iconFolder .  uuid().".png";
                         $move = move_uploaded_file($icon["tmp_name"], $newIcon);
                         if ($move) {
                             $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `headIcon` = '" . $newIcon . "' WHERE `token` = '" . $token . "'";
@@ -487,20 +491,24 @@ function updateSpaceInfo($token, $userName, $introduce, $gender, $icon, $cover)
 
             if ($cover != null) {
                 if (is_string($cover)) {
-                    $updata = "UPDATE " . DATABASE_NAME . ".`community` SET `cover` = '" . $cover . "' WHERE `token` = '" . $token . "'";
+                    $updata = "UPDATE " . DATABASE_NAME . ".`community` SET `cover` = '" . $cover . "' WHERE `account` = '" . $account . "'";
                     mysqli_query($con, $updata);
                 } else {
-                    if (!empty($icon)) {
-                        $newIcon = $folder . "/cover.png";
+                    if (!empty($cover)) {
+                        $iconFolder = $folder."/covers/";
+                        if (!file_exists($iconFolder)) {
+                            mkdir($iconFolder, 0777, true);
+                        }
+                        $newIcon = $iconFolder . uuid().".png";
                         $move = move_uploaded_file($cover["tmp_name"], $newIcon);
                         if ($move) {
-                            $updata = "UPDATE " . DATABASE_NAME . ".`community` SET `cover` = '" . $newIcon . "' WHERE `token` = '" . $token . "'";
+                            $updata = "UPDATE " . DATABASE_NAME . ".`community` SET `cover` = '" . $newIcon . "' WHERE `account` = '" . $account . "'";
                             mysqli_query($con, $updata);
                         }
                     }
                 }
             }
-            echo createResponse(SUCCESS_CODE, "已更新", null);
+            echo createResponse(SUCCESS_CODE, "已更新".$userName."的用户信息", null);
         } else {
             echo createResponse(ERROR_CODE, "令牌验证错误" . $token, null);
         }

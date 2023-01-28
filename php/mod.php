@@ -851,7 +851,11 @@ function updateMod($appID, $modId, $developer, $name, $describe, $tags, $version
                     if (is_string($iconFile)) {
                         $realIcon = $iconFile;
                     } else {
-                        $newIcon = $folder . "/icon.png";
+                        $iconFolder = $folder."/icons/";
+                        if (!file_exists($iconFolder)) {
+                            mkdir($iconFolder, 0777, true);
+                        }
+                        $newIcon = $iconFolder.uuid().".png";
                         $move =  move_uploaded_file($iconFile["tmp_name"], $newIcon);
                         if ($move) {
                             $realIcon = $newIcon;
