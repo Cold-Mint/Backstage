@@ -391,8 +391,6 @@ $commentSql = "SELECT * FROM " . DATABASE_NAME . ".`mod_comments` WHERE id='" . 
 $commentResult = mysqli_query($con, $commentSql);
 if (mysqli_num_rows($commentResult) > 0) {
     $commentRow = mysqli_fetch_assoc($commentResult);
-    $hide = $commentRow['hide'];
-        //是公开的删除评论
         $sqlUpdate = "UPDATE " . DATABASE_NAME . ".`mod_comments` SET `hide` = '".$newHideState."' WHERE `id` = '".$commentId."'";
         mysqli_query($con, $sqlUpdate);
         $operation = "hide";
