@@ -33,6 +33,7 @@ switch ($_REQUEST['action']) {
         createSubscribeRecordTable();
         createVerificationCode();
         createCoinRecordTable();
+        ModCommentOperationRecord();
         echo "</table>";
         break;
     default:
@@ -63,6 +64,34 @@ function initPlan()
 }
 
 /**
+ * 创建模组评论操作记录表
+ */
+function ModCommentOperationRecord()
+{
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return;
+    } else {
+        $sql = "CREATE TABLE `mod_comment_operation_record` (
+            `id` int(11) NOT NULL AUTO_INCREMENT,
+            `account` varchar(255) DEFAULT NULL,
+            `commentID` int(11) DEFAULT NULL,
+            `operation` varchar(20) DEFAULT NULL,
+            `time` varchar(20) DEFAULT NULL,
+            PRIMARY KEY (`id`)
+          ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";
+        if (mysqli_query($con, $sql)) {
+            echo "<tr><td>模组评论操作记录</td><td>保存管理员删除恢复评论的操作记录。</td><td>成功</td></tr>";
+        } else {
+            echo "<tr><td>模组评论操作记录</td><td>" . mysqli_error($con) . "</td><td>失败</td></tr>";
+        }
+    }
+    mysqli_close($con);
+}
+
+/**
  * 创建投币记录表
  */
 function createCoinRecordTable()
@@ -81,7 +110,7 @@ function createCoinRecordTable()
             `number` int(255) DEFAULT NULL,
             `time` varchar(20) DEFAULT NULL,
             PRIMARY KEY (`id`)
-          ) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8mb4;";
+          ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;";
         if (mysqli_query($con, $sql)) {
             echo "<tr><td>投币记录表</td><td>存放投币记录信息。</td><td>成功</td></tr>";
         } else {
@@ -154,7 +183,7 @@ function createVerificationCode(){
             `type` varchar(20) DEFAULT NULL,
             `enable` varchar(10) DEFAULT NULL,
             PRIMARY KEY (`id`)
-          ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4;";
+          ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;";
         if (mysqli_query($con, $sql)) {
             echo "<tr><td>验证码记录表</td><td>存放服务器发送的验证码信息。</td><td>成功</td></tr>";
         } else {
@@ -180,7 +209,7 @@ function createSubscribeRecordTable(){
             `packageId` varchar(20) DEFAULT NULL,
             `time` varchar(20) DEFAULT NULL,
             PRIMARY KEY (`id`)
-          ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4;";
+          ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;";
         if (mysqli_query($con, $sql)) {
             echo "<tr><td>模板包订阅记录表</td><td>存放模板包信息。</td><td>成功</td></tr>";
         } else {
@@ -271,7 +300,7 @@ function createErrorRecordTable(){
             `versionName` varchar(50) DEFAULT NULL,
             `versionNumber` int(11) DEFAULT NULL,
             PRIMARY KEY (`id`)
-          ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4;";
+          ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;";
         if (mysqli_query($con, $sql)) {
             echo "<tr><td>错误记录表</td><td>存放错误异常记录。</td><td>成功</td></tr>";
         } else {
@@ -326,7 +355,7 @@ function createAppUpdateTable(){
             `link` varchar(255) DEFAULT NULL,
             `time` varchar(255) DEFAULT NULL,
             PRIMARY KEY (`id`)
-          ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4;";
+          ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;";
         if (mysqli_query($con, $sql)) {
             echo "<tr><td>App更新表</td><td>存放App更新数据。</td><td>成功</td></tr>";
         } else {
@@ -354,7 +383,7 @@ function createBannerTable(){
             `createTime` varchar(20) DEFAULT NULL,
             `expirationTime` varchar(20) DEFAULT NULL,
             PRIMARY KEY (`id`)
-          ) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8mb4;";
+          ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;";
         if (mysqli_query($con, $sql)) {
             echo "<tr><td>banner表</td><td>存放轮播图数据。</td><td>成功</td></tr>";
         } else {
@@ -514,7 +543,7 @@ function createOrder()
             `flag` varchar(40) DEFAULT NULL,
             `state` varchar(255) DEFAULT NULL,
             PRIMARY KEY (`id`)
-          ) ENGINE=InnoDB AUTO_INCREMENT=17 DEFAULT CHARSET=utf8mb4;";
+          ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;";
         if (mysqli_query($con, $sql)) {
             echo "<tr><td>订单表</td><td>存放购买订单。</td><td>成功</td></tr>";
         } else {
@@ -541,7 +570,7 @@ function createDynamicTable()
             `time` varchar(255) DEFAULT NULL,
             `location` varchar(255) DEFAULT NULL,
             PRIMARY KEY (`id`)
-          ) ENGINE=InnoDB AUTO_INCREMENT=26 DEFAULT CHARSET=utf8mb4;";
+          ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;";
         if (mysqli_query($con, $sql)) {
             echo "<tr><td>动态表</td><td>存放用户动态。</td><td>成功</td></tr>";
         } else {
@@ -669,8 +698,9 @@ function createModComments()
             `content` varchar(255) DEFAULT NULL,
             `time` varchar(30) DEFAULT NULL,
             `location` varchar(50) DEFAULT NULL,
+            `hide` int(11) DEFAULT 0,
             PRIMARY KEY (`id`) USING BTREE
-          ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;";
+          ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;";
         if (mysqli_query($con, $sql)) {
             echo "<tr><td>模组评论表</td><td>存放模组评论信息。</td><td>成功</td></tr>";
         } else {
@@ -699,7 +729,7 @@ function createFollowRecordTable()
             `targetAccount` varchar(20) NOT NULL,
             `time` varchar(20) NOT NULL,
             PRIMARY KEY (`id`)
-          ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4;";
+          ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;";
         if (mysqli_query($con, $sql)) {
             echo "<tr><td>关注记录表</td><td>存放用户的关注状态。</td><td>成功</td></tr>";
         } else {
@@ -731,7 +761,7 @@ function createReportRecordTable()
             `state` int(11) DEFAULT NULL,
             `time` varchar(20) DEFAULT NULL,
             PRIMARY KEY (`id`)
-          ) ENGINE=InnoDB AUTO_INCREMENT=31 DEFAULT CHARSET=utf8mb4;";
+          ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;";
         if (mysqli_query($con, $sql)) {
             echo "<tr><td>举报记录表</td><td>存放举报记录。</td><td>成功</td></tr>";
         } else {
@@ -763,7 +793,7 @@ function createCouponsTable()
             `createTime` varchar(20) DEFAULT NULL,
             `expirationTime` varchar(20) DEFAULT NULL,
             PRIMARY KEY (`id`)
-          ) ENGINE=InnoDB AUTO_INCREMENT=33 DEFAULT CHARSET=utf8mb4;";
+          ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8mb4;";
         if (mysqli_query($con, $sql)) {
             echo "<tr><td>折扣券表</td><td>存放折扣券信息。</td><td>成功</td></tr>";
         } else {

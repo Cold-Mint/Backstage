@@ -353,7 +353,76 @@ limit 可选参数
         }
         getCoinStatus($_POST['token'], $_POST['modId']);
         break;
+    case "modifyCommentVisibility":
+   //修改评论可见状态
+        if (empty($_POST['adminToken'])) {
+            echo nullValuePrompt("adminToken");
+            return;
+        }
+        if (empty($_POST['commentId'])) {
+            echo nullValuePrompt("commentId");
+            return;
+        }
+        //可见状态，传入0为可见，其他为隐藏(可选参数，默认为隐藏)
+        modifyCommentVisibility($_POST['adminToken'], $_POST['commentId'],$_POST['hide']);
+        break;
 }
+
+//删除评论
+//参数：管理员token，评论id
+function modifyCommentVisibility($adminToken, $commentId,$newHideState){
+    if($newHideState == null){
+        $newHideState = '1';
+    }
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return;
+    } else {
+        $userSql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE token='" . $adminToken . "'";
+        $userResult = mysqli_query($con, $userSql);
+        if (mysqli_num_rows($userResult) > 0) {
+            $userRow = mysqli_fetch_assoc($userResult);
+            $permission = $userRow['permission'];
+            if($permission < 3){
+//是管理员
+$commentSql = "SELECT * FROM " . DATABASE_NAME . ".`mod_comments` WHERE id='" . $commentId . "'";
+$commentResult = mysqli_query($con, $commentSql);
+if (mysqli_num_rows($commentResult) > 0) {
+    $commentRow = mysqli_fetch_assoc($commentResult);
+    $hide = $commentRow['hide'];
+        //是公开的删除评论
+        $sqlUpdate = "UPDATE " . DATABASE_NAME . ".`mod_comments` SET `hide` = '".$newHideState."' WHERE `id` = '".$commentId."'";
+        mysqli_query($con, $sqlUpdate);
+        $operation = "hide";
+        if($newHideState == '0'){
+            $operation = "recover";
+        }
+        $nowTime = time();
+        $createTime = date("Y-m-d H:i:s", $nowTime);
+        $sqlInsert = "INSERT INTO " . DATABASE_NAME . ".`mod_comment_operation_record` (`account`, `commentID`, `operation`, `time`) VALUES ('".$userRow['account']."', '".$commentId."', '".$operation."', '".$createTime."')";
+        mysqli_query($con, $sqlInsert);
+        if($newHideState == '0'){
+            echo createResponse(SUCCESS_CODE, "恢复成功。", null);
+        }else{
+            echo createResponse(SUCCESS_CODE, "删除成功。", null);
+        }
+   
+}else{
+    echo createResponse(ERROR_CODE, "找不到id为".$commentId."的评论", null);
+}
+            }else{
+                echo createResponse(ERROR_CODE, "您无权删除评论。", null);
+            }
+           
+        } else {
+            echo createResponse(ERROR_CODE, "令牌验证失败。", null);
+        }
+    }
+    mysqli_close($con);
+}
+
 
 function getCoinStatus($token, $modId)
 {
@@ -599,7 +668,7 @@ function commentsList($modId)
     } else {
         $total = array();
         $num = 0;
-        $sqlMod = "SELECT content,time,account,id,location FROM " . DATABASE_NAME . ".`mod_comments` WHERE `modId`='" . $modId . "' ORDER BY id DESC";
+        $sqlMod = "SELECT content,time,account,id,location FROM " . DATABASE_NAME . ".`mod_comments` WHERE `modId`='" . $modId . "' AND `hide`='0' ORDER BY id DESC";
         $result = mysqli_query($con, $sqlMod);
         if ($result != false && mysqli_num_rows($result) > 0) {
             while ($row = mysqli_fetch_assoc($result)) {
