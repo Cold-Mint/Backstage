@@ -198,7 +198,12 @@ switch ($_REQUEST['action']) {
         } else if (!empty($_POST['cover'])) {
             $cover = $_POST['cover'];
         }
-        updateSpaceInfo($_POST['token'], $_POST['userName'], $_POST['introduce'], $_POST['gender'], $icon, $cover);
+        //可选的带有动态颜色
+        $dynamicColor = null;
+        if (!empty($_POST['dynamicColor'])) {
+$dynamicColor = $_POST['dynamicColor'];
+        }
+        updateSpaceInfo($_POST['token'], $_POST['userName'], $_POST['introduce'], $_POST['gender'], $icon, $cover,$dynamicColor);
         break;
     case "getSocialList":
         /*
@@ -434,7 +439,7 @@ function getList($social, $enable, $sortMode, $limit)
 
 
 /*更新社交信息 */
-function updateSpaceInfo($token, $userName, $introduce, $gender, $icon, $cover)
+function updateSpaceInfo($token, $userName, $introduce, $gender, $icon, $cover,$dynamicColor)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
@@ -465,6 +470,13 @@ function updateSpaceInfo($token, $userName, $introduce, $gender, $icon, $cover)
             mysqli_query($con, $updata);
             $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `gender` = '" . $gender . "' WHERE `token` = '" . $token . "'";
             mysqli_query($con, $updata);
+            if($dynamicColor == null){
+                $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `dynamicColor` = 'null' WHERE `token` = '" . $token . "'";
+                mysqli_query($con, $updata);
+            }else{
+                $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `dynamicColor` = '" . $dynamicColor . "' WHERE `token` = '" . $token . "'";
+                mysqli_query($con, $updata);
+            }
             $folder = "../user/" . iconv("UTF-8", "GBK", $account);
             if (!file_exists($folder)) {
                 mkdir($folder, 0777, true);
@@ -682,7 +694,7 @@ function getSocialInfo($account)
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
-        $sql = "SELECT account,userName,email,permission,loginTime,gender,enable,expirationTime FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
+        $sql = "SELECT account,userName,email,permission,loginTime,gender,enable,expirationTime,dynamicColor FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
         $result = mysqli_query($con, $sql);
         if (mysqli_num_rows($result) > 0) {
             $row = mysqli_fetch_assoc($result);
@@ -703,7 +715,7 @@ function getSpaceInfo($account)
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
-        $sql = "SELECT account,userName,headIcon,email,permission,loginTime,gender,enable,expirationTime,ip FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
+        $sql = "SELECT account,userName,headIcon,email,permission,loginTime,gender,enable,expirationTime,ip,dynamicColor FROM " . DATABASE_NAME . ".`user` WHERE account='" . $account . "'";
         $result = mysqli_query($con, $sql);
         $row = mysqli_fetch_assoc($result);
         $sql2 = "SELECT * FROM " . DATABASE_NAME . ".`community` WHERE account='" . $account . "'";

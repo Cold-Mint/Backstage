@@ -119,7 +119,7 @@ function getList($account, $isFollowMode, $limit)
                 $sql2 =  "SELECT * FROM " . DATABASE_NAME . ".`community` WHERE account='" . $row[$show] . "'";
                 $result2 = mysqli_query($con, $sql2);
                 $userInfo = mysqli_fetch_assoc($result2);
-                $sql3 =  "SELECT account,userName,headIcon,email,permission,loginTime,gender,enable  FROM " . DATABASE_NAME . ".`user` WHERE account='" . $row[$show] . "'";
+                $sql3 =  "SELECT account,userName,headIcon,email,permission,loginTime,gender,enable,dynamicColor  FROM " . DATABASE_NAME . ".`user` WHERE account='" . $row[$show] . "'";
                 $result3 = mysqli_query($con, $sql3);
                 $userInfo2 = mysqli_fetch_assoc($result3);
                 if ($userInfo != null && $userInfo2 != null) {

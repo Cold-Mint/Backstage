@@ -510,6 +510,7 @@ function createUserTable()
             `banTime` varchar(20) DEFAULT NULL,
             `ip` varchar(255) DEFAULT NULL,
             `coinNumber` int(20) DEFAULT 0,
+            `dynamicColor` longtext CHARACTER SET utf8mb4 COLLATE utf8mb4_bin DEFAULT NULL CHECK (json_valid(`dynamicColor`)),
             PRIMARY KEY (`account`) USING BTREE,
             UNIQUE KEY `email` (`email`),
             UNIQUE KEY `userName` (`userName`)

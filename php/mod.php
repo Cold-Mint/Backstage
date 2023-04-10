@@ -666,7 +666,7 @@ function commentsList($modId)
     } else {
         $total = array();
         $num = 0;
-        $sqlMod = "SELECT content,time,account,id,location FROM " . DATABASE_NAME . ".`mod_comments` WHERE `modId`='" . $modId . "' AND `hide`='0' ORDER BY id DESC";
+        $sqlMod = "SELECT content,time,account,id,location,dynamicColor FROM " . DATABASE_NAME . ".`mod_comments` WHERE `modId`='" . $modId . "' AND `hide`='0' ORDER BY id DESC";
         $result = mysqli_query($con, $sqlMod);
         if ($result != false && mysqli_num_rows($result) > 0) {
             while ($row = mysqli_fetch_assoc($result)) {
