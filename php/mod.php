@@ -354,7 +354,7 @@ limit 可选参数
         getCoinStatus($_POST['token'], $_POST['modId']);
         break;
     case "modifyCommentVisibility":
-   //修改评论可见状态
+        //修改评论可见状态
         if (empty($_POST['adminToken'])) {
             echo nullValuePrompt("adminToken");
             return;
@@ -364,14 +364,15 @@ limit 可选参数
             return;
         }
         //可见状态，传入0为可见，其他为隐藏(可选参数，默认为隐藏)
-        modifyCommentVisibility($_POST['adminToken'], $_POST['commentId'],$_POST['hide']);
+        modifyCommentVisibility($_POST['adminToken'], $_POST['commentId'], $_POST['hide']);
         break;
 }
 
 //删除评论
 //参数：管理员token，评论id
-function modifyCommentVisibility($adminToken, $commentId,$newHideState){
-    if($newHideState == null){
+function modifyCommentVisibility($adminToken, $commentId, $newHideState)
+{
+    if ($newHideState == null) {
         $newHideState = '1';
     }
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
@@ -380,42 +381,58 @@ function modifyCommentVisibility($adminToken, $commentId,$newHideState){
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
-        $userSql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE token='" . $adminToken . "'";
-        $userResult = mysqli_query($con, $userSql);
-        if (mysqli_num_rows($userResult) > 0) {
-            $userRow = mysqli_fetch_assoc($userResult);
-            $permission = $userRow['permission'];
-            if($permission < 3){
-//是管理员
-$commentSql = "SELECT * FROM " . DATABASE_NAME . ".`mod_comments` WHERE id='" . $commentId . "'";
-$commentResult = mysqli_query($con, $commentSql);
-if (mysqli_num_rows($commentResult) > 0) {
-    $commentRow = mysqli_fetch_assoc($commentResult);
-        $sqlUpdate = "UPDATE " . DATABASE_NAME . ".`mod_comments` SET `hide` = '".$newHideState."' WHERE `id` = '".$commentId."'";
-        mysqli_query($con, $sqlUpdate);
-        $operation = "hide";
-        if($newHideState == '0'){
-            $operation = "recover";
-        }
-        $nowTime = time();
-        $createTime = date("Y-m-d H:i:s", $nowTime);
-        $sqlInsert = "INSERT INTO " . DATABASE_NAME . ".`mod_comment_operation_record` (`account`, `commentID`, `operation`, `time`) VALUES ('".$userRow['account']."', '".$commentId."', '".$operation."', '".$createTime."')";
-        mysqli_query($con, $sqlInsert);
-        if($newHideState == '0'){
-            echo createResponse(SUCCESS_CODE, "恢复成功。", null);
-        }else{
-            echo createResponse(SUCCESS_CODE, "删除成功。", null);
-        }
-   
-}else{
-    echo createResponse(ERROR_CODE, "找不到id为".$commentId."的评论", null);
-}
-            }else{
-                echo createResponse(ERROR_CODE, "您无权删除评论。", null);
+        $commentSql = "SELECT * FROM " . DATABASE_NAME . ".`mod_comments` WHERE id='" . $commentId . "'";
+        $commentResult = mysqli_query($con, $commentSql);
+        if (mysqli_num_rows($commentResult) > 0) {
+            $commentRow = mysqli_fetch_assoc($commentResult);
+            //查找Mod
+            $modSql = "SELECT * FROM " . DATABASE_NAME . ".`mod` WHERE id='" . $commentRow['modId'] . "'";
+            $modResult = mysqli_query($con, $modSql);
+            $developer = null;
+            if (mysqli_num_rows($modResult) > 0) {
+                $modRow = mysqli_fetch_assoc($modResult);
+                $developer = $modRow['developer'];
             }
-           
+            $userSql = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE token='" . $adminToken . "'";
+            $userResult = mysqli_query($con, $userSql);
+            if (mysqli_num_rows($userResult) > 0) {
+                $userRow = mysqli_fetch_assoc($userResult);
+                $permission = $userRow['permission'];
+                $account = $userRow['account'];
+                $publisher = $commentRow['account'];
+                if ($permission < 3 || $account == $developer || $account == $publisher) {
+                    //是管理员或者是Mod开发者，或者是评论发布者
+                    $nowTime = time();
+                    //从发布时间加5分钟计算为到期时间，过期发布者不能删除评论(管理员除外)
+                    $maturityTime = strtotime(COMMENT_DELETE_TIME, strtotime($commentRow['time']));
+                    if ($nowTime > $maturityTime &&  $account == $publisher && $permission == 3) {
+                        echo createResponse(ERROR_CODE, "已超过了可以删除此评论的时段。", null);
+                        mysqli_close($con);
+                        return;
+                    }
+                    $sqlUpdate = "UPDATE " . DATABASE_NAME . ".`mod_comments` SET `hide` = '" . $newHideState . "' WHERE `id` = '" . $commentId . "'";
+                    mysqli_query($con, $sqlUpdate);
+                    $operation = "hide";
+                    if ($newHideState == '0') {
+                        $operation = "recover";
+                    }
+
+                    $createTime = date("Y-m-d H:i:s", $nowTime);
+                    $sqlInsert = "INSERT INTO " . DATABASE_NAME . ".`mod_comment_operation_record` (`account`, `commentID`, `operation`, `time`) VALUES ('" . $userRow['account'] . "', '" . $commentId . "', '" . $operation . "', '" . $createTime . "')";
+                    mysqli_query($con, $sqlInsert);
+                    if ($newHideState == '0') {
+                        echo createResponse(SUCCESS_CODE, "恢复成功。", null);
+                    } else {
+                        echo createResponse(SUCCESS_CODE, "删除成功。", null);
+                    }
+                } else {
+                    echo createResponse(ERROR_CODE, "您无权处理" . $publisher . "的评论。", null);
+                }
+            } else {
+                echo createResponse(ERROR_CODE, "令牌验证失败。", null);
+            }
         } else {
-            echo createResponse(ERROR_CODE, "令牌验证失败。", null);
+            echo createResponse(ERROR_CODE, "找不到id为" . $commentId . "的评论", null);
         }
     }
     mysqli_close($con);
@@ -666,7 +683,7 @@ function commentsList($modId)
     } else {
         $total = array();
         $num = 0;
-        $sqlMod = "SELECT content,time,account,id,location,dynamicColor FROM " . DATABASE_NAME . ".`mod_comments` WHERE `modId`='" . $modId . "' AND `hide`='0' ORDER BY id DESC";
+        $sqlMod = "SELECT content,time,account,id,location FROM " . DATABASE_NAME . ".`mod_comments` WHERE `modId`='" . $modId . "' AND `hide`='0' ORDER BY id DESC";
         $result = mysqli_query($con, $sqlMod);
         if ($result != false && mysqli_num_rows($result) > 0) {
             while ($row = mysqli_fetch_assoc($result)) {
@@ -682,7 +699,7 @@ function commentsList($modId)
             }
             echo createResponse(SUCCESS_CODE, "获取成功，共" . $num . "条记录", $total);
         } else {
-            echo createResponse(ERROR_CODE, "没有评论。", null);
+            echo createResponse(ERROR_CODE, "没有评论。" . $sqlMod, null);
         }
         if ($result != false) {
             mysqli_free_result($result);
@@ -816,13 +833,13 @@ function getInfo($token, $modId)
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         return;
     } else {
-        if(empty($token)){
- $sqlMod = "SELECT * FROM " . DATABASE_NAME . ".`mod` WHERE id='" . $modId . "'";
+        if (empty($token)) {
+            $sqlMod = "SELECT * FROM " . DATABASE_NAME . ".`mod` WHERE id='" . $modId . "'";
             $modResult = mysqli_query($con, $sqlMod);
             if (mysqli_num_rows($modResult) > 0) {
                 $modRow = mysqli_fetch_assoc($modResult);
                 echo createResponse(SUCCESS_CODE, "获取成功。", $modRow);
-            }else {
+            } else {
                 echo createResponse(ERROR_CODE, "找不到id为" . $modId . "的模组。", null);
             }
             return;
@@ -918,11 +935,11 @@ function updateMod($appID, $modId, $developer, $name, $describe, $tags, $version
                     if (is_string($iconFile)) {
                         $realIcon = $iconFile;
                     } else {
-                        $iconFolder = $folder."/icons/";
+                        $iconFolder = $folder . "/icons/";
                         if (!file_exists($iconFolder)) {
                             mkdir($iconFolder, 0777, true);
                         }
-                        $newIcon = $iconFolder.uuid().".png";
+                        $newIcon = $iconFolder . uuid() . ".png";
                         $move =  move_uploaded_file($iconFile["tmp_name"], $newIcon);
                         if ($move) {
                             $realIcon = $newIcon;
@@ -1149,7 +1166,7 @@ function auditMod($token, $modId, $state)
 /*获取模组列表(显示部分信息) */
 function getList($loadHide, $sortMode, $limit)
 {
-    
+
 
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
@@ -1173,7 +1190,7 @@ function getList($loadHide, $sortMode, $limit)
                 $sqlMod = $sqlMod . " ORDER BY coinNumber DESC";
             } else if ($sortMode == "unitNumber") {
                 $sqlMod = $sqlMod . " ORDER BY unitNumber DESC";
-            }else if ($sortMode == "updateNumber") {
+            } else if ($sortMode == "updateNumber") {
                 $sqlMod = $sqlMod . " ORDER BY versionNumber DESC";
             }
         }

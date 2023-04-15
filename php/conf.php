@@ -15,6 +15,8 @@ const DISCOUNT_TIME = EXPERIENCE_TIME;
 const DISCOUNT_VALUE = 0.8;
 //启用付费
 const ENABLE_PAYMENT = false;
+//评论发布后多长时间内可以删除
+const COMMENT_DELETE_TIME= "+5 minute";
 
 /**此ip是否可以访问数据 */
 function canUseIp()
