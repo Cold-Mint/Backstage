@@ -17,10 +17,15 @@ const DISCOUNT_VALUE = 0.8;
 const ENABLE_PAYMENT = false;
 //评论发布后多长时间内可以删除
 const COMMENT_DELETE_TIME= "+5 minute";
+//是否为本地调试模式
+const LOCAL_DEBUG_MODE = true;
 
 /**此ip是否可以访问数据 */
 function canUseIp()
 {
+    if(LOCAL_DEBUG_MODE){
+        return true;
+    }
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
     $resultBool = false;

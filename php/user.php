@@ -201,9 +201,9 @@ switch ($_REQUEST['action']) {
         //可选的带有动态颜色
         $dynamicColor = null;
         if (!empty($_POST['dynamicColor'])) {
-$dynamicColor = $_POST['dynamicColor'];
+            $dynamicColor = $_POST['dynamicColor'];
         }
-        updateSpaceInfo($_POST['token'], $_POST['userName'], $_POST['introduce'], $_POST['gender'], $icon, $cover,$dynamicColor);
+        updateSpaceInfo($_POST['token'], $_POST['userName'], $_POST['introduce'], $_POST['gender'], $icon, $cover, $dynamicColor);
         break;
     case "getSocialList":
         /*
@@ -439,7 +439,7 @@ function getList($social, $enable, $sortMode, $limit)
 
 
 /*更新社交信息 */
-function updateSpaceInfo($token, $userName, $introduce, $gender, $icon, $cover,$dynamicColor)
+function updateSpaceInfo($token, $userName, $introduce, $gender, $icon, $cover, $dynamicColor)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
@@ -470,10 +470,10 @@ function updateSpaceInfo($token, $userName, $introduce, $gender, $icon, $cover,$
             mysqli_query($con, $updata);
             $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `gender` = '" . $gender . "' WHERE `token` = '" . $token . "'";
             mysqli_query($con, $updata);
-            if($dynamicColor == null){
+            if ($dynamicColor == null) {
                 $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `dynamicColor` = 'null' WHERE `token` = '" . $token . "'";
                 mysqli_query($con, $updata);
-            }else{
+            } else {
                 $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `dynamicColor` = '" . $dynamicColor . "' WHERE `token` = '" . $token . "'";
                 mysqli_query($con, $updata);
             }
@@ -487,11 +487,11 @@ function updateSpaceInfo($token, $userName, $introduce, $gender, $icon, $cover,$
                     mysqli_query($con, $updata);
                 } else {
                     if (!empty($icon)) {
-                        $iconFolder = $folder."/icons/";
+                        $iconFolder = $folder . "/icons/";
                         if (!file_exists($iconFolder)) {
                             mkdir($iconFolder, 0777, true);
                         }
-                        $newIcon = $iconFolder .  uuid().".png";
+                        $newIcon = $iconFolder .  uuid() . ".png";
                         $move = move_uploaded_file($icon["tmp_name"], $newIcon);
                         if ($move) {
                             $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `headIcon` = '" . $newIcon . "' WHERE `token` = '" . $token . "'";
@@ -507,11 +507,11 @@ function updateSpaceInfo($token, $userName, $introduce, $gender, $icon, $cover,$
                     mysqli_query($con, $updata);
                 } else {
                     if (!empty($cover)) {
-                        $iconFolder = $folder."/covers/";
+                        $iconFolder = $folder . "/covers/";
                         if (!file_exists($iconFolder)) {
                             mkdir($iconFolder, 0777, true);
                         }
-                        $newIcon = $iconFolder . uuid().".png";
+                        $newIcon = $iconFolder . uuid() . ".png";
                         $move = move_uploaded_file($cover["tmp_name"], $newIcon);
                         if ($move) {
                             $updata = "UPDATE " . DATABASE_NAME . ".`community` SET `cover` = '" . $newIcon . "' WHERE `account` = '" . $account . "'";
@@ -520,7 +520,7 @@ function updateSpaceInfo($token, $userName, $introduce, $gender, $icon, $cover,$
                     }
                 }
             }
-            echo createResponse(SUCCESS_CODE, "已更新".$userName."的用户信息", null);
+            echo createResponse(SUCCESS_CODE, "已更新" . $userName . "的用户信息", null);
         } else {
             echo createResponse(ERROR_CODE, "令牌验证错误" . $token, null);
         }
@@ -584,6 +584,9 @@ function addCoinIfNeed($account)
  */
 function updateIp($account)
 {
+    if(LOCAL_DEBUG_MODE){
+        return;
+    }
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
     $ip = getIp();
@@ -606,14 +609,14 @@ function getUserActivationInfo($token)
         $sql = "SELECT account,userName,headIcon,permission,email,enable,expirationTime,banTime,coinNumber FROM " . DATABASE_NAME . ".`user` WHERE token='" . $token . "'";
         $result = mysqli_query($con, $sql);
         if (mysqli_num_rows($result) > 0) {
-          
+
             $row = mysqli_fetch_assoc($result);
             //是否可用
             $nowTime = time();
             $rowTime = null;
-            if(ENABLE_PAYMENT){
+            if (ENABLE_PAYMENT) {
                 $rowTime = $row['expirationTime'];
-            }else{
+            } else {
                 $row['expirationTime'] = "forever";
                 $rowTime = $row['expirationTime'];
             }
@@ -640,7 +643,7 @@ function getUserActivationInfo($token)
                 }
             }
             $loginTime = date("Y-m-d H:i:s", $nowTime);
-            $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `loginTime` ='".$loginTime."' WHERE token = '" . $token . "'";
+            $updata = "UPDATE " . DATABASE_NAME . ".`user` SET `loginTime` ='" . $loginTime . "' WHERE token = '" . $token . "'";
             mysqli_query($con, $updata);
             updateIp($account);
             addCoinIfNeed($account);
@@ -1041,9 +1044,9 @@ function login($account, $passWord, $appID, $isEmail)
             //是否可用
             $nowTime = time();
             $rowTime = null;
-            if(ENABLE_PAYMENT){
+            if (ENABLE_PAYMENT) {
                 $rowTime = $row['expirationTime'];
-            }else{
+            } else {
                 $row['expirationTime'] = "forever";
                 $rowTime = $row['expirationTime'];
             }
