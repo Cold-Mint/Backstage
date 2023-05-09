@@ -640,6 +640,7 @@ function createModTable()
             `unitNumber` int(11) DEFAULT 0,
             `hidden` tinyint(1) DEFAULT 1,
             `coinNumber` int(11) DEFAULT 0,
+            `minVersion` varchar(20) DEFAULT NULL,
             PRIMARY KEY (`id`),
             UNIQUE KEY `name` (`name`) USING BTREE
           ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;";

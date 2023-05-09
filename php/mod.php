@@ -15,8 +15,8 @@ if (empty($_REQUEST['action'])) {
 
 switch ($_REQUEST['action']) {
     case "update":
-        if (empty($_POST['account'])) {
-            echo nullValuePrompt("account");
+        if (empty($_POST['token'])) {
+            echo nullValuePrompt("token");
             return;
         }
         if (empty($_POST['appID'])) {
@@ -65,7 +65,11 @@ switch ($_REQUEST['action']) {
             echo createResponse(ERROR_CODE, "模组不能大于50MB。", null);
             return;
         }
-        updateMod($_POST['appID'], $_POST['modId'], $_POST['account'], $_POST['modName'], $_POST['describe'], $_POST['tags'], $_POST['versionName'], $_POST['unitNumber'], $_POST['updateLog'], $icon, $_FILES['file']);
+        $minVersion = null;
+        if (!empty($_POST['minVersion'])) {
+            $minVersion = $_POST['minVersion'];
+        }
+        updateMod($_POST['appID'], $_POST['modId'], $_POST['token'], $_POST['modName'], $_POST['describe'], $_POST['tags'], $_POST['versionName'], $_POST['unitNumber'], $_POST['updateLog'], $minVersion, $icon, $_FILES['file']);
         break;
     case "release":
         if (empty($_POST['token'])) {
@@ -114,9 +118,12 @@ switch ($_REQUEST['action']) {
             echo createResponse(ERROR_CODE, "模组不能大于50MB。", null);
             return;
         }
-
+        $minVersion = null;
+        if (!empty($_POST['minVersion'])) {
+            $minVersion = $_POST['minVersion'];
+        }
         //可选 $_FILES['icon']
-        releaseMod($_POST['appID'], $_POST['modId'], $_POST['token'], $_POST['modName'], $_POST['describe'], $_POST['tags'], $_POST['versionName'], $_POST['unitNumber'], $icon, $_FILES['file']);
+        releaseMod($_POST['appID'], $_POST['modId'], $_POST['token'], $_POST['modName'], $_POST['describe'], $_POST['tags'], $_POST['versionName'], $_POST['unitNumber'], $minVersion, $icon, $_FILES['file']);
         break;
     case "audit":
         if (empty($_POST['token'])) {
@@ -134,12 +141,16 @@ switch ($_REQUEST['action']) {
         auditMod($_POST['token'], $_POST['modId'], $_POST['state']);
         break;
     case "getInfo":
+        $token = null;
+        if (!empty($_POST['token'])) {
+            $token = $_POST['token'];
+        }
         //token可以为空
         if (empty($_POST['modId'])) {
             echo nullValuePrompt("modId");
             return;
         }
-        getInfo($_POST['token'], $_POST['modId']);
+        getInfo($token, $_POST['modId']);
         break;
     case "random":
         //随机推荐
@@ -894,7 +905,7 @@ function getInfo($token, $modId)
 
 
 /**更新模组方法 */
-function updateMod($appID, $modId, $developer, $name, $describe, $tags, $versionName, $unitNumber, $updataLog, $iconFile, $file)
+function updateMod($appID, $modId, $developerToken, $name, $describe, $tags, $versionName, $unitNumber, $updataLog, $minVersion, $iconFile, $file)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
@@ -902,9 +913,11 @@ function updateMod($appID, $modId, $developer, $name, $describe, $tags, $version
         echo createResponse(ERROR_CODE, "链接数据库出错。", null);
         exit;
     } else {
-        $sqlUser = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE account='" . $developer . "' AND appID='" . $appID . "'";
+        $sqlUser = "SELECT * FROM " . DATABASE_NAME . ".`user` WHERE token='" . $developerToken . "' AND appID='" . $appID . "'";
         $userResult = mysqli_query($con, $sqlUser);
         if (mysqli_num_rows($userResult) > 0) {
+            $userRow = mysqli_fetch_assoc($userResult);
+            $developer = $userRow['account'];
             $sql = "SELECT * FROM " . DATABASE_NAME . ".`mod` WHERE id='" . $modId . "'";
             $result = mysqli_query($con, $sql);
             if (mysqli_num_rows($result) > 0) {
@@ -984,7 +997,7 @@ function updateMod($appID, $modId, $developer, $name, $describe, $tags, $version
                 $createTime = date("Y-m-d H:i:s", $nowTime);
                 $newVersionNumber = $modRow['versionNumber'] + 1;
 
-                $up = "UPDATE " . DATABASE_NAME . ".`mod` SET `name`='" . $name . "',  `icon` = '" . $realIcon . "',`unitNumber`='" . $unitNumber . "', `tags`='" . $tags . "',`screenshots` = '" . $screenshotData . "', `versionNumber` = " . $newVersionNumber . ", `versionName`='" . $versionName . "', `describe`='" . $describe . "',  `updateTime` = '" . $createTime . "'  WHERE `id` = '" . $modId . "'";
+                $up = "UPDATE " . DATABASE_NAME . ".`mod` SET `name`='" . $name . "',  `icon` = '" . $realIcon . "',`unitNumber`='" . $unitNumber . "', `tags`='" . $tags . "',`screenshots` = '" . $screenshotData . "', `versionNumber` = " . $newVersionNumber . ", `versionName`='" . $versionName . "', `describe`='" . $describe . "',  `updateTime` = '" . $createTime . "', `minVersion`='" . $minVersion . "' WHERE `id` = '" . $modId . "'";
                 $sqlUpdate = "INSERT INTO " . DATABASE_NAME . ".`mod_versions`(`id`, `versionName`, `versionNumber`, `updateLog`, `time`) VALUES ('" . $modId . "', '" . $versionName . "', " . $newVersionNumber . ", '" . $updataLog . "', '" . $createTime . "')";
                 mysqli_query($con, $sqlUpdate);
                 mysqli_query($con, $up);
@@ -999,7 +1012,7 @@ function updateMod($appID, $modId, $developer, $name, $describe, $tags, $version
                 echo createResponse(ERROR_CODE, "找不到id为" . $modId . "的模组。", null);
             }
         } else {
-            echo createResponse(ERROR_CODE, "找不到名为" . $developer . "的用户。", null);
+            echo createResponse(ERROR_CODE, "令牌验证失败。", null);
         }
         mysqli_free_result($userResult);
     }
@@ -1008,7 +1021,7 @@ function updateMod($appID, $modId, $developer, $name, $describe, $tags, $version
 
 
 /* 发布模组方法*/
-function releaseMod($appID, $modId, $developerToken, $name, $describe, $tags, $versionName, $unitNumber, $iconFile, $file)
+function releaseMod($appID, $modId, $developerToken, $name, $describe, $tags, $versionName, $unitNumber, $minVersion, $iconFile, $file)
 {
     $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
     mysqli_select_db($con, DATABASE_NAME);
@@ -1091,7 +1104,7 @@ function releaseMod($appID, $modId, $developerToken, $name, $describe, $tags, $v
                 if ($permission < 3) {
                     $hidden = 0;
                 }
-                $sql = "INSERT INTO " . DATABASE_NAME . ".`mod`(`id`,`name`, `describe`,`icon`,`screenshots`,`developer`, `tags`,`link`,`versionNumber`,`versionName`,`updateTime`, `creationTime`,`unitNumber`,`hidden`) VALUES ('" . $modId . "','" . $name . "', '" . $describe . "', '" . $realIcon . "', '" . $screenshotData . "', '" . $account . "', '" . $tags . "', '" . $newFile . "','1','" . $versionName . "','" . $createTime . "', '" . $createTime . "','" . $unitNumber . "','" . $hidden . "')";
+                $sql = "INSERT INTO " . DATABASE_NAME . ".`mod`(`id`,`name`, `describe`,`icon`,`screenshots`,`developer`, `tags`,`link`,`versionNumber`,`versionName`,`updateTime`, `creationTime`,`unitNumber`,`hidden`,`minVersion`) VALUES ('" . $modId . "','" . $name . "', '" . $describe . "', '" . $realIcon . "', '" . $screenshotData . "', '" . $account . "', '" . $tags . "', '" . $newFile . "','1','" . $versionName . "','" . $createTime . "', '" . $createTime . "','" . $unitNumber . "','" . $hidden . "','" . $minVersion . "')";
                 $sqlUpdate = "INSERT INTO " . DATABASE_NAME . ".`mod_versions`(`id`, `versionName`, `versionNumber`, `updateLog`, `time`) VALUES ('" . $modId . "', '" . $versionName . "', 1, '初始提交', '" . $createTime . "')";
                 mysqli_query($con, $sqlUpdate);
                 if (mysqli_query($con, $sql)) {
