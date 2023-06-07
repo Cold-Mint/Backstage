@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <title>更新记录</title>
+    <link rel="stylesheet" href="./website/css/mdui.min.css"/>
+    <script>
+        window.onload = function () {
+            var xhr = new XMLHttpRequest();
+            xhr.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var data = JSON.parse(this.responseText);
+                    showData(data);
+                    setTile(data);
+                }
+            };
+            xhr.open("GET", "https://rust.coldmint.top/php/appUpdate.php?action=getAllUpdate", true);
+            xhr.send();
+        };
+
+        function setTile(data) {
+            var titleElements = document.getElementById("page-title");
+            var titleData = data.message;
+            titleElements.textContent = titleData;
+        }
+
+        function showData(data) {
+            var container = document.getElementById("container");
+            var html = "<div class=\"mdui-panel\" mdui-panel>";
+            for (var i = 0; i < data.data.length; i++) {
+                var item = data.data[i];
+                html += "<div class=\"mdui-panel-item\"><div class=\"mdui-panel-item-header\"><div class=\"mdui-panel-item-title\">" + item.versionName + "</div>";
+                html += "<div class=\"mdui-panel-item-summary\">" + item.title + "</div><i class=\"mdui-panel-item-arrow mdui-icon material-icons\">keyboard_arrow_down</i></div>";
+                html += "<div class=\"mdui-panel-item-body\"><p>" + item.content + "</p><div class=\"mdui-typo-caption\">"+item.time+"</div>";
+                if (item.link !== "") {
+                    html += "<button class=\"mdui-btn mdui-ripple\" onclick=\"window.location.href='" + item.link + "'\">点击下载</button>";
+                }
+                html += "</div></div>";
+            }
+            html += "</div>";
+            container.innerHTML = html;
+
+            // 初始化折叠面板
+            var panel = new mdui.Panel('.mdui-panel');
+        }
+    </script>
+</head>
+<body>
+<div id="mdui-container">
+    <div class="mdui-toolbar">
+        <span class="mdui-typo-title" id="page-title">App更新记录</span>
+    </div>
+    <div id="container">
+
+    </div>
+</div>
+<script src="../website/js/mdui.min.js"></script>
+</body>
+</html>

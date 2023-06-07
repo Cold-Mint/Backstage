@@ -50,6 +50,9 @@ switch ($_REQUEST['action']) {
     case "getUpdate":
         getUpdate();
         break;
+    case "getAllUpdate":
+        getAllUpdate();
+        break;
 }
 
 
@@ -66,6 +69,34 @@ function getUpdate()
         if (mysqli_num_rows($result) > 0) {
             $row = mysqli_fetch_assoc($result);
             echo createResponse(SUCCESS_CODE, "获取成功", $row);
+        } else {
+            echo createResponse(ERROR_CODE, "没有APP更新记录", null);
+        }
+    }
+}
+
+/**
+ * 获取全部的程序更新记录
+ * @return void
+ */
+function getAllUpdate()
+{
+    $con = mysqli_connect(SERVERNAME, LOCALHOST, PASSWORD);
+    mysqli_select_db($con, DATABASE_NAME);
+    if (!$con) {
+        echo createResponse(ERROR_CODE, "链接数据库出错。", null);
+        return;
+    } else {
+        $sql = "SELECT * FROM " . DATABASE_NAME . ".`app_update` ORDER BY id DESC";
+        $result = mysqli_query($con, $sql);
+        if (mysqli_num_rows($result) > 0) {
+            $total = array();
+            $num = 0;
+            while ($row = mysqli_fetch_assoc($result)) {
+                $total[$num] = $row;
+                $num++;
+            }
+            echo createResponse(SUCCESS_CODE, "App更新记录(" . $num . ")", $total);
         } else {
             echo createResponse(ERROR_CODE, "没有APP更新记录", null);
         }
