@@ -26,6 +26,19 @@ MySql 5.7.34 或更高版本
 
 在第二步，你会得到一个zip文件。将其解压的您的网站公开目录。
 
+##### 4.连接数据库
+
+在解压的目录找到**php/conf.php**文件。您需要在此文件内配置数据库的信息。
+
+```php
+const SERVERNAME = "连接的 MySQL 数据库，主机名或 IP 地址（默认情况下不需要修改。默认值：localhost）";
+const LOCALHOST = "用户名";
+const PASSWORD = "密码";
+const ERROR_CODE = 1;
+const SUCCESS_CODE = 0;
+const DATABASE_NAME = "数据库名";
+```
+
 
 
 ### 作用
@@ -43,4 +56,3 @@ MySql 5.7.34 或更高版本
 4. Mod更新模块。允许用户更新已上传的模组。
 5. 排行推荐模块。随机推荐，按照特定参数构建排行榜。
 6. 动态模块。允许用户发布动态。
-
